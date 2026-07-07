@@ -24,6 +24,12 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.ContentTransform
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -421,7 +427,22 @@ private fun ControlCenterCard(
 
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("狀態", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
-                AnimatedContent(targetState = runtimeState.status, label = "status") { targetStatus ->
+                AnimatedContent(
+                    targetState = runtimeState.status,
+                    label = "status",
+                    transitionSpec = {
+                        if (targetState.startsWith("模型下載中") || initialState.startsWith("模型下載中")) {
+                            ContentTransform(
+                                targetContentEnter = EnterTransition.None,
+                                initialContentExit = ExitTransition.None
+                            )
+                        } else {
+                            (fadeIn(animationSpec = tween(220, delayMillis = 90)) +
+                                    scaleIn(initialScale = 0.92f, animationSpec = tween(220, delayMillis = 90)))
+                                .togetherWith(fadeOut(animationSpec = tween(90)))
+                        }
+                    }
+                ) { targetStatus ->
                     Text(targetStatus, style = MaterialTheme.typography.titleMedium)
                 }
                 val lastLine = runtimeState.lines.lastOrNull()
@@ -670,7 +691,7 @@ private fun WhisperModelSection(
         Text(
             text = when {
                 selectedDownloadState.isDownloaded -> "模型已下載"
-                selectedDownloadState.isDownloading -> buildDownloadStatusText(selectedDownloadState)
+                selectedDownloadState.isDownloading -> selectedDownloadState.buildStatusText()
                 selectedDownloadState.errorMessage != null -> selectedDownloadState.errorMessage
                 else -> "模型尚未下載"
             },
@@ -859,13 +880,6 @@ private fun Context.overlaySettingsIntent(): Intent =
         Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
         "package:$packageName".toUri(),
     )
-
-private fun buildDownloadStatusText(state: ModelDownloadState): String {
-    val progress = state.progress.asPercent()
-    val sizeProgress = "${state.downloadedBytes.asReadableSize()} / ${state.totalBytes.asReadableSize()}"
-    val speed = state.downloadSpeedBytesPerSecond.asReadableSpeed()
-    return "模型下載中 $progress · $sizeProgress · $speed"
-}
 
 private fun Float.asPercent(): String = "${(this * 100).toInt().coerceIn(0, 100)}%"
 

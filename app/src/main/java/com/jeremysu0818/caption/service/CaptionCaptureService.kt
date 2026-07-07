@@ -20,6 +20,7 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.jeremysu0818.caption.CaptionGraph
 import com.jeremysu0818.caption.MainActivity
+import com.jeremysu0818.caption.whisper.ModelDownloadState
 import com.jeremysu0818.caption.R
 import com.jeremysu0818.caption.audio.InMemoryWavWriter
 import com.jeremysu0818.caption.audio.SystemAudioCapture
@@ -121,11 +122,7 @@ class CaptionCaptureService : Service() {
                     val downloadStatusJob = launch {
                         CaptionGraph.modelRepository.downloadState.collectLatest { state ->
                             if (state.model == modelOption && state.isDownloading) {
-                                val status = if (state.totalBytes > 0) {
-                                    "下載 ${state.model.displayName} ${state.progress.asPercent()}"
-                                } else {
-                                    "下載 ${state.model.displayName}"
-                                }
+                                val status = state.buildStatusText()
                                 CaptionRuntimeStore.updateStatus(status)
                                 updateNotification(status)
                             }

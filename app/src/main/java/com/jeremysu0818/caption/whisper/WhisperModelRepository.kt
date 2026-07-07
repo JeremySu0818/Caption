@@ -28,7 +28,30 @@ data class ModelDownloadState(
     val totalBytes: Long = -1L,
     val downloadSpeedBytesPerSecond: Long = 0L,
     val errorMessage: String? = null,
-)
+) {
+    fun buildStatusText(): String {
+        val progressPercent = "${(progress * 100).toInt().coerceIn(0, 100)}%"
+        val readableDownloaded = formatReadableSize(downloadedBytes)
+        val readableTotal = formatReadableSize(totalBytes)
+        val sizeProgress = "$readableDownloaded / $readableTotal"
+        val speed = if (downloadSpeedBytesPerSecond <= 0L) "計算中" else "${formatReadableSize(downloadSpeedBytesPerSecond)}/s"
+        return "模型下載中 $progressPercent · $sizeProgress · $speed"
+    }
+
+    private fun formatReadableSize(bytes: Long): String {
+        if (bytes < 0L) return "--"
+        if (bytes < 1024L) return "${bytes} B"
+        val units = arrayOf("KB", "MB", "GB", "TB")
+        var value = bytes.toDouble()
+        var unitIndex = -1
+        while (value >= 1024.0 && unitIndex < units.lastIndex) {
+            value /= 1024.0
+            unitIndex++
+        }
+        return String.format(java.util.Locale.US, "%.1f %s", value, units[unitIndex])
+    }
+}
+
 
 class WhisperModelRepository(context: Context) {
     private val modelDir = File(context.filesDir, "whisper_models")
