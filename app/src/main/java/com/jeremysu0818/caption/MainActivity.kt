@@ -6,7 +6,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.projection.MediaProjectionManager
-import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
@@ -16,6 +15,13 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.net.toUri
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -24,7 +30,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -34,6 +39,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -242,60 +248,101 @@ private fun CaptionApp(
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
-            RuntimeCard(runtimeState = runtimeState)
-            PermissionCard(
-                overlayGranted = overlayGranted,
-                recordGranted = recordGranted,
-                notificationGranted = notificationGranted,
-                onOpenOverlaySettings = {
-                    overlayPrompted = true
-                    overlaySettingsLauncher.launch(context.overlaySettingsIntent())
-                },
-                onRequestRecord = {
-                    recordPrompted = true
-                    recordPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                },
-                onRequestNotifications = {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        notificationPrompted = true
-                        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                    }
-                },
-            )
-            SpeechEngineCard(
-                settings = settings,
-                onEngineSelected = CaptionGraph.preferences::updateSpeechEngine,
-            )
-            ModelCard(
-                settings = settings,
-                downloadState = downloadState,
-                onModelSelected = CaptionGraph.preferences::updateModel,
-                onDownloadModel = {
-                    scope.launch {
-                        CaptionGraph.modelRepository.ensureModel(settings.model)
-                    }
-                },
-            )
-            TranslationCard(
-                settings = settings,
-                onEnabledChanged = CaptionGraph.preferences::updateTranslationEnabled,
-                onSourceChanged = CaptionGraph.preferences::updateSourceLanguage,
-                onTargetChanged = CaptionGraph.preferences::updateTargetLanguage,
-            )
-            StartStopCard(
+            ControlCenterCard(
+                runtimeState = runtimeState,
                 isRunning = runtimeState.isRunning,
                 canStart = overlayGranted && recordGranted,
                 onStart = onStartRequested,
-                onStop = { CaptionCaptureService.stop(context) },
+                onStop = { CaptionCaptureService.stop(context) }
             )
+
+            val allPermissionsGranted = overlayGranted && recordGranted && notificationGranted
+            AnimatedVisibility(
+                visible = !allPermissionsGranted,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
+            ) {
+                PermissionAlertCard(
+                    overlayGranted = overlayGranted,
+                    recordGranted = recordGranted,
+                    notificationGranted = notificationGranted,
+                    onOpenOverlaySettings = {
+                        overlayPrompted = true
+                        overlaySettingsLauncher.launch(context.overlaySettingsIntent())
+                    },
+                    onRequestRecord = {
+                        recordPrompted = true
+                        recordPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                    },
+                    onRequestNotifications = {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            notificationPrompted = true
+                            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                        }
+                    },
+                )
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    text = "設定",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(start = 4.dp)
+                )
+
+                ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.animateContentSize()) {
+                        SpeechEngineSection(
+                            settings = settings,
+                            onEngineSelected = CaptionGraph.preferences::updateSpeechEngine,
+                        )
+                        
+                        AnimatedVisibility(
+                            visible = settings.speechEngine == SpeechEngineOption.WHISPER,
+                            enter = expandVertically() + fadeIn(),
+                            exit = shrinkVertically() + fadeOut()
+                        ) {
+                            Column {
+                                HorizontalDivider(modifier = Modifier.padding(horizontal = 18.dp), color = MaterialTheme.colorScheme.surfaceVariant)
+                                WhisperModelSection(
+                                    settings = settings,
+                                    downloadState = downloadState,
+                                    onModelSelected = CaptionGraph.preferences::updateModel,
+                                    onDownloadModel = {
+                                        scope.launch {
+                                            CaptionGraph.modelRepository.ensureModel(settings.model)
+                                        }
+                                    },
+                                )
+                            }
+                        }
+
+                        HorizontalDivider(modifier = Modifier.padding(horizontal = 18.dp), color = MaterialTheme.colorScheme.surfaceVariant)
+                        
+                        TranslationSection(
+                            settings = settings,
+                            onEnabledChanged = CaptionGraph.preferences::updateTranslationEnabled,
+                            onSourceChanged = CaptionGraph.preferences::updateSourceLanguage,
+                            onTargetChanged = CaptionGraph.preferences::updateTargetLanguage,
+                        )
+                    }
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun RuntimeCard(runtimeState: CaptionRuntimeState) {
+private fun ControlCenterCard(
+    runtimeState: CaptionRuntimeState,
+    isRunning: Boolean,
+    canStart: Boolean,
+    onStart: () -> Unit,
+    onStop: () -> Unit,
+) {
     ElevatedCard(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.elevatedCardColors(
@@ -303,26 +350,49 @@ private fun RuntimeCard(runtimeState: CaptionRuntimeState) {
         ),
     ) {
         Column(
-            modifier = Modifier.padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier
+                .padding(18.dp)
+                .animateContentSize(),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Text("狀態", style = MaterialTheme.typography.labelLarge)
-            Text(runtimeState.status, style = MaterialTheme.typography.titleMedium)
-            if (runtimeState.sourceText.isNotBlank()) {
-                Text(runtimeState.sourceText, style = MaterialTheme.typography.bodyLarge)
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Button(
+                    modifier = Modifier.weight(1f),
+                    onClick = onStart,
+                    enabled = !isRunning,
+                ) {
+                    Text(if (canStart) "啟動字幕" else "檢查授權")
+                }
+                OutlinedButton(
+                    modifier = Modifier.weight(1f),
+                    onClick = onStop,
+                    enabled = isRunning,
+                ) {
+                    Text("停止")
+                }
             }
-            runtimeState.translatedText?.takeIf { it.isNotBlank() }?.let {
-                Text(it, style = MaterialTheme.typography.bodyMedium)
-            }
-            runtimeState.errorMessage?.let {
-                Text(it, color = MaterialTheme.colorScheme.error)
+
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("狀態", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                AnimatedContent(targetState = runtimeState.status, label = "status") { targetStatus ->
+                    Text(targetStatus, style = MaterialTheme.typography.titleMedium)
+                }
+                AnimatedVisibility(visible = runtimeState.sourceText.isNotBlank()) {
+                    Text(runtimeState.sourceText, style = MaterialTheme.typography.bodyLarge)
+                }
+                AnimatedVisibility(visible = !runtimeState.translatedText.isNullOrBlank()) {
+                    Text(runtimeState.translatedText.orEmpty(), style = MaterialTheme.typography.bodyMedium)
+                }
+                AnimatedVisibility(visible = runtimeState.errorMessage != null) {
+                    Text(runtimeState.errorMessage.orEmpty(), color = MaterialTheme.colorScheme.error)
+                }
             }
         }
     }
 }
 
 @Composable
-private fun PermissionCard(
+private fun PermissionAlertCard(
     overlayGranted: Boolean,
     recordGranted: Boolean,
     notificationGranted: Boolean,
@@ -330,28 +400,39 @@ private fun PermissionCard(
     onRequestRecord: () -> Unit,
     onRequestNotifications: () -> Unit,
 ) {
-    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+    ElevatedCard(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.elevatedCardColors(
+            containerColor = MaterialTheme.colorScheme.errorContainer,
+            contentColor = MaterialTheme.colorScheme.onErrorContainer
+        )
+    ) {
         Column(
-            modifier = Modifier.padding(18.dp),
+            modifier = Modifier
+                .padding(18.dp)
+                .animateContentSize(),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text("授權", style = MaterialTheme.typography.titleMedium)
-            PermissionRow(
-                label = "覆蓋其他應用程式",
-                granted = overlayGranted,
-                actionText = "開啟設定",
-                onAction = onOpenOverlaySettings,
-            )
-            PermissionRow(
-                label = "系統音訊擷取",
-                granted = recordGranted,
-                actionText = "允許",
-                onAction = onRequestRecord,
-            )
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            Text("需要授權", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text("為確保字幕視窗與語音辨識正常運作，請允許以下權限：", style = MaterialTheme.typography.bodyMedium)
+            
+            if (!overlayGranted) {
+                PermissionRow(
+                    label = "覆蓋其他應用程式",
+                    actionText = "開啟設定",
+                    onAction = onOpenOverlaySettings,
+                )
+            }
+            if (!recordGranted) {
+                PermissionRow(
+                    label = "系統音訊擷取",
+                    actionText = "允許",
+                    onAction = onRequestRecord,
+                )
+            }
+            if (!notificationGranted && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 PermissionRow(
                     label = "前景服務通知",
-                    granted = notificationGranted,
                     actionText = "允許",
                     onAction = onRequestNotifications,
                 )
@@ -363,7 +444,6 @@ private fun PermissionCard(
 @Composable
 private fun PermissionRow(
     label: String,
-    granted: Boolean,
     actionText: String,
     onAction: () -> Unit,
 ) {
@@ -372,22 +452,44 @@ private fun PermissionRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(label, style = MaterialTheme.typography.bodyLarge)
-            Text(
-                text = if (granted) "已允許" else "尚未允許",
-                style = MaterialTheme.typography.bodySmall,
-                color = if (granted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
-            )
-        }
-        OutlinedButton(onClick = onAction, enabled = !granted) {
+        Text(label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+        Button(onClick = onAction) {
             Text(actionText)
         }
     }
 }
 
 @Composable
-private fun ModelCard(
+private fun SpeechEngineSection(
+    settings: CaptionSettings,
+    onEngineSelected: (SpeechEngineOption) -> Unit,
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(18.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text("辨識引擎", style = MaterialTheme.typography.titleMedium)
+        SpeechEngineOption.entries.forEach { option ->
+            FilterChip(
+                selected = settings.speechEngine == option,
+                onClick = { onEngineSelected(option) },
+                label = { Text(option.label) },
+            )
+        }
+        Text(
+            text = when (settings.speechEngine) {
+                SpeechEngineOption.WHISPER -> "使用 whisper.cpp；偵測到一句話結束後整句轉錄，約延遲 3-5 秒。"
+                SpeechEngineOption.MLKIT_BASIC -> "使用 ML Kit Basic，多數 Android 12+ 裝置可用。"
+                SpeechEngineOption.MLKIT_ADVANCED -> "使用 ML Kit Advanced，需支援 AICore/Gemini Nano 的裝置。"
+            },
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun WhisperModelSection(
     settings: CaptionSettings,
     downloadState: ModelDownloadState,
     onModelSelected: (WhisperModelOption) -> Unit,
@@ -399,159 +501,120 @@ private fun ModelCard(
         ModelDownloadState(model = settings.model)
     }
 
-    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier.padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Text("Whisper 模型", style = MaterialTheme.typography.titleMedium)
-            if (settings.speechEngine != SpeechEngineOption.WHISPER) {
-                Text(
-                    "目前使用 ${settings.speechEngine.label}，不會下載或使用 Whisper 模型。",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                return@Column
-            }
-            WhisperModelOption.entries.chunked(2).forEach { rowModels ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    rowModels.forEach { option ->
-                        FilterChip(
-                            modifier = Modifier.weight(1f),
-                            selected = settings.model == option,
-                            onClick = { onModelSelected(option) },
-                            label = {
-                                Text("${option.displayName} · ${option.sizeLabel}")
-                            },
-                        )
-                    }
-                    if (rowModels.size == 1) {
-                        Spacer(modifier = Modifier.weight(1f))
-                    }
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(18.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text("Whisper 模型", style = MaterialTheme.typography.titleMedium)
+        WhisperModelOption.entries.chunked(2).forEach { rowModels ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                rowModels.forEach { option ->
+                    FilterChip(
+                        modifier = Modifier.weight(1f),
+                        selected = settings.model == option,
+                        onClick = { onModelSelected(option) },
+                        label = {
+                            Text("${option.displayName} · ${option.sizeLabel}")
+                        },
+                    )
+                }
+                if (rowModels.size == 1) {
+                    Spacer(modifier = Modifier.weight(1f))
                 }
             }
-            Text(
-                text = when {
-                    selectedDownloadState.isDownloaded -> "模型已下載"
-                    selectedDownloadState.isDownloading -> "模型下載中 ${selectedDownloadState.progress.asPercent()}"
-                    selectedDownloadState.errorMessage != null -> selectedDownloadState.errorMessage
-                    else -> "模型尚未下載"
-                },
-                color = if (selectedDownloadState.errorMessage != null) {
-                    MaterialTheme.colorScheme.error
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                },
-            )
-            if (selectedDownloadState.isDownloading) {
-                LinearProgressIndicator(
-                    progress = { selectedDownloadState.progress.coerceIn(0f, 1f) },
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-            Button(
-                onClick = onDownloadModel,
-                enabled = !selectedDownloadState.isDownloaded && !selectedDownloadState.isDownloading,
-            ) {
-                Text("下載 ${settings.model.displayName}")
-            }
         }
-    }
-}
-
-@Composable
-private fun SpeechEngineCard(
-    settings: CaptionSettings,
-    onEngineSelected: (SpeechEngineOption) -> Unit,
-) {
-    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier.padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+        Text(
+            text = when {
+                selectedDownloadState.isDownloaded -> "模型已下載"
+                selectedDownloadState.isDownloading -> "模型下載中 ${selectedDownloadState.progress.asPercent()}"
+                selectedDownloadState.errorMessage != null -> selectedDownloadState.errorMessage
+                else -> "模型尚未下載"
+            },
+            style = MaterialTheme.typography.bodySmall,
+            color = if (selectedDownloadState.errorMessage != null) {
+                MaterialTheme.colorScheme.error
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            },
+        )
+        if (selectedDownloadState.isDownloading) {
+            LinearProgressIndicator(
+                progress = { selectedDownloadState.progress.coerceIn(0f, 1f) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+        Button(
+            onClick = onDownloadModel,
+            enabled = !selectedDownloadState.isDownloaded && !selectedDownloadState.isDownloading,
         ) {
-            Text("辨識引擎", style = MaterialTheme.typography.titleMedium)
-            SpeechEngineOption.entries.forEach { option ->
-                FilterChip(
-                    selected = settings.speechEngine == option,
-                    onClick = { onEngineSelected(option) },
-                    label = { Text(option.label) },
-                )
-            }
-            Text(
-                text = when (settings.speechEngine) {
-                    SpeechEngineOption.WHISPER -> "使用 whisper.cpp，本機模型由 app 下載。"
-                    SpeechEngineOption.MLKIT_BASIC -> "使用 ML Kit Basic，多數 Android 12+ 裝置可用。"
-                    SpeechEngineOption.MLKIT_ADVANCED -> "使用 ML Kit Advanced，需支援 AICore/Gemini Nano 的裝置。"
-                },
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            Text("下載 ${settings.model.displayName}")
         }
     }
 }
 
 @Composable
-private fun TranslationCard(
+private fun TranslationSection(
     settings: CaptionSettings,
     onEnabledChanged: (Boolean) -> Unit,
     onSourceChanged: (String) -> Unit,
     onTargetChanged: (String) -> Unit,
 ) {
-    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier.padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(18.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text("本機翻譯", style = MaterialTheme.typography.titleMedium)
-                    Text(
-                        text = "來源語言會套用到 ML Kit，也會在翻譯開啟時套用到 Whisper。",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                Switch(
-                    checked = settings.translationEnabled,
-                    onCheckedChange = onEnabledChanged,
+            Column(modifier = Modifier.weight(1f)) {
+                Text("本機翻譯", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    text = "來源語言會套用到 ML Kit，也會在翻譯開啟時套用到 Whisper。",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                LanguageDropdown(
-                    modifier = Modifier.weight(1f),
-                    label = "來源",
-                    selectedTag = settings.sourceLanguageTag,
-                    onSelected = onSourceChanged,
-                )
-                if (settings.translationEnabled) {
-                    LanguageDropdown(
-                        modifier = Modifier.weight(1f),
-                        label = "目標",
-                        selectedTag = settings.targetLanguageTag,
-                        onSelected = onTargetChanged,
-                    )
-                } else {
-                    Spacer(modifier = Modifier.weight(1f))
-                }
-            }
-            Text(
-                text = if (settings.translationEnabled) {
-                    "顯示來源與翻譯字幕"
-                } else {
-                    "只顯示來源字幕"
-                },
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            Switch(
+                checked = settings.translationEnabled,
+                onCheckedChange = onEnabledChanged,
             )
         }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .animateContentSize(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            LanguageDropdown(
+                modifier = Modifier.weight(1f),
+                label = "來源",
+                selectedTag = settings.sourceLanguageTag,
+                onSelected = onSourceChanged,
+            )
+            if (settings.translationEnabled) {
+                LanguageDropdown(
+                    modifier = Modifier.weight(1f),
+                    label = "目標",
+                    selectedTag = settings.targetLanguageTag,
+                    onSelected = onTargetChanged,
+                )
+            } else {
+                Spacer(modifier = Modifier.weight(1f))
+            }
+        }
+        Text(
+            text = if (settings.translationEnabled) {
+                "顯示來源與翻譯字幕"
+            } else {
+                "只顯示來源字幕"
+            },
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
@@ -581,39 +644,6 @@ private fun LanguageDropdown(
                         onSelected(language.tag)
                     },
                 )
-            }
-        }
-    }
-}
-
-@Composable
-private fun StartStopCard(
-    isRunning: Boolean,
-    canStart: Boolean,
-    onStart: () -> Unit,
-    onStop: () -> Unit,
-) {
-    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier.padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Text("字幕視窗", style = MaterialTheme.typography.titleMedium)
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Button(
-                    modifier = Modifier.weight(1f),
-                    onClick = onStart,
-                    enabled = !isRunning,
-                ) {
-                    Text(if (canStart) "啟動" else "檢查授權")
-                }
-                OutlinedButton(
-                    modifier = Modifier.weight(1f),
-                    onClick = onStop,
-                    enabled = isRunning,
-                ) {
-                    Text("停止")
-                }
             }
         }
     }

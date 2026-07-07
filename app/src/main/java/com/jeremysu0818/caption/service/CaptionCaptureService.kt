@@ -16,11 +16,14 @@ import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import android.provider.Settings
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.jeremysu0818.caption.CaptionGraph
 import com.jeremysu0818.caption.MainActivity
 import com.jeremysu0818.caption.R
+import com.jeremysu0818.caption.audio.InMemoryWavWriter
 import com.jeremysu0818.caption.audio.SystemAudioCapture
+import com.jeremysu0818.caption.audio.VoiceActivityDetector
 import com.jeremysu0818.caption.audio.WavFileWriter
 import com.jeremysu0818.caption.data.CaptionRuntimeStore
 import com.jeremysu0818.caption.data.SpeechEngineOption
@@ -139,9 +142,10 @@ class CaptionCaptureService : Service() {
                 CaptionRuntimeStore.updateStatus("擷取系統音訊")
                 updateNotification("擷取系統音訊")
                 if (settingsAtStart.speechEngine == SpeechEngineOption.WHISPER) {
-                    runWhisperCaptureLoop(
+                    runWhisperBatchCaptureLoop(
                         projection = projection,
                         modelFile = requireNotNull(modelFile),
+                        modelOption = modelOption,
                         overlay = overlay,
                     )
                 } else {
@@ -161,6 +165,172 @@ class CaptionCaptureService : Service() {
             }
         }
     }
+
+    // ========================================================================
+    // Whisper batch capture: high-accuracy mode with VAD sentence commits.
+    // ========================================================================
+
+    private suspend fun runWhisperBatchCaptureLoop(
+        projection: MediaProjection,
+        modelFile: File,
+        modelOption: com.jeremysu0818.caption.data.WhisperModelOption,
+        overlay: FloatingCaptionWindow,
+    ) = coroutineScope {
+        withContext(Dispatchers.Default) {
+            overlay.updateStatus("載入 Whisper 模型")
+            CaptionRuntimeStore.updateStatus("載入 Whisper 模型")
+            CaptionGraph.transcriber.ensureModelLoaded(modelFile)
+        }
+
+        val timing = modelOption.batchTiming()
+        val vad = VoiceActivityDetector(
+            speechThreshold = 2.5f,
+            noiseFloorAlpha = 0.93f,
+            absoluteMinRms = 0.003f,
+        ).apply { hangoverChunks = timing.vadHangoverChunks }
+
+        val audioFrames = Channel<ShortArray>(
+            capacity = 240,
+            onBufferOverflow = BufferOverflow.DROP_OLDEST,
+        )
+        val capture = SystemAudioCapture(projection)
+        val captureJob = launch {
+            capture.captureChunks(
+                output = audioFrames,
+                chunkDurationMs = WHISPER_VAD_FRAME_MS,
+            )
+        }
+
+        val processingJob = launch(Dispatchers.Default) {
+            val chunkDir = File(cacheDir, "caption_chunks").apply { mkdirs() }
+            var index = 0L
+            val preSpeechFrames = ArrayDeque<ShortArray>()
+            var preSpeechSamples = 0
+            val utteranceFrames = ArrayList<ShortArray>()
+            var utteranceSamples = 0
+            var speechDetected = false
+            var silenceAfterSpeechSamples = 0
+
+            for (frame in audioFrames) {
+                val isSpeech = vad.isSpeech(frame)
+
+                if (isSpeech) {
+                    if (!speechDetected) {
+                        speechDetected = true
+                        utteranceFrames.clear()
+                        utteranceSamples = 0
+                        preSpeechFrames.forEach { buffered ->
+                            utteranceFrames.add(buffered)
+                            utteranceSamples += buffered.size
+                        }
+
+                        withContext(Dispatchers.Main.immediate) {
+                            overlay.updateStatus("Whisper 聆聽中...")
+                            CaptionRuntimeStore.updateStatus("Whisper 聆聽中...")
+                        }
+                    }
+
+                    utteranceFrames.add(frame)
+                    utteranceSamples += frame.size
+                    silenceAfterSpeechSamples = 0
+                    continue
+                }
+
+                if (!speechDetected) {
+                    preSpeechFrames.addLast(frame)
+                    preSpeechSamples += frame.size
+                    while (preSpeechSamples > timing.preSpeechSamples && preSpeechFrames.isNotEmpty()) {
+                        preSpeechSamples -= preSpeechFrames.removeFirst().size
+                    }
+                    continue
+                }
+
+                utteranceFrames.add(frame)
+                utteranceSamples += frame.size
+                silenceAfterSpeechSamples += frame.size
+
+                val shouldCommit = silenceAfterSpeechSamples >= timing.silenceCommitSamples ||
+                    utteranceSamples >= timing.maxUtteranceSamples
+                if (!shouldCommit || utteranceSamples < timing.minUtteranceSamples) {
+                    continue
+                }
+
+                val samples = utteranceFrames.flattenShorts(utteranceSamples)
+                utteranceFrames.clear()
+                utteranceSamples = 0
+                speechDetected = false
+                silenceAfterSpeechSamples = 0
+                preSpeechFrames.clear()
+                preSpeechSamples = 0
+
+                val wavFile = File(chunkDir, "whisper_sentence_${index++}.wav")
+
+                try {
+                    withContext(Dispatchers.Main.immediate) {
+                        overlay.updateStatus("Whisper 轉錄中")
+                        CaptionRuntimeStore.updateStatus("Whisper 轉錄中")
+                    }
+
+                    InMemoryWavWriter.write(wavFile, samples)
+                    val settings = CaptionGraph.preferences.settings.value
+                    val whisperLanguage = if (settings.translationEnabled) {
+                        settings.sourceLanguageTag
+                    } else {
+                        "auto"
+                    }
+
+                    val sourceText = CaptionGraph.transcriber.transcribe(
+                        wavFile = wavFile,
+                        modelFile = modelFile,
+                        languageTag = whisperLanguage,
+                    ).cleanWhisperText()
+
+                    if (sourceText.isBlank()) continue
+
+                    val translatedText = if (settings.translationEnabled) {
+                        withContext(Dispatchers.Main.immediate) {
+                            overlay.updateStatus("ML Kit 翻譯中")
+                            CaptionRuntimeStore.updateStatus("ML Kit 翻譯中")
+                        }
+                        CaptionGraph.translator.translate(
+                            text = sourceText,
+                            sourceLanguageTag = settings.sourceLanguageTag,
+                            targetLanguageTag = settings.targetLanguageTag,
+                        )
+                    } else {
+                        null
+                    }
+
+                    withContext(Dispatchers.Main.immediate) {
+                        overlay.updateCaption(sourceText, translatedText)
+                        overlay.updateStatus("即時字幕執行中")
+                        CaptionRuntimeStore.updateCaption(sourceText, translatedText)
+                    }
+                } catch (error: Throwable) {
+                    if (error is CancellationException) throw error
+                    Log.e(TAG, "Whisper batch inference failed", error)
+                    val message = error.message ?: "Whisper 轉錄失敗。"
+                    withContext(Dispatchers.Main.immediate) {
+                        overlay.updateStatus(message)
+                        CaptionRuntimeStore.setError(message)
+                    }
+                } finally {
+                    wavFile.delete()
+                }
+            }
+        }
+
+        try {
+            processingJob.join()
+        } finally {
+            audioFrames.close()
+            captureJob.cancel()
+        }
+    }
+
+    // ========================================================================
+    // Legacy Whisper capture loop (kept for reference, no longer used)
+    // ========================================================================
 
     private suspend fun runWhisperCaptureLoop(
         projection: MediaProjection,
@@ -246,6 +416,10 @@ class CaptionCaptureService : Service() {
         }
     }
 
+    // ========================================================================
+    // ML Kit streaming capture loop (unchanged)
+    // ========================================================================
+
     private suspend fun runMlKitStreamingCaptureLoop(
         projection: MediaProjection,
         overlay: FloatingCaptionWindow,
@@ -311,6 +485,10 @@ class CaptionCaptureService : Service() {
         }
     }
 
+    // ========================================================================
+    // MediaProjection helpers
+    // ========================================================================
+
     private fun createMediaProjection(resultCode: Int, resultData: Intent): MediaProjection {
         val manager = getSystemService(MediaProjectionManager::class.java)
         val projection = manager.getMediaProjection(resultCode, resultData)
@@ -363,6 +541,10 @@ class CaptionCaptureService : Service() {
         }
     }
 
+    // ========================================================================
+    // Notification helpers
+    // ========================================================================
+
     private fun startForegroundForProjection(status: String) {
         val notification = buildNotification(status)
         startForeground(
@@ -413,6 +595,10 @@ class CaptionCaptureService : Service() {
         manager.createNotificationChannel(channel)
     }
 
+    // ========================================================================
+    // Utility extensions
+    // ========================================================================
+
     private fun Intent.projectionResultData(): Intent? =
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
             getParcelableExtra(EXTRA_RESULT_DATA, Intent::class.java)
@@ -423,6 +609,29 @@ class CaptionCaptureService : Service() {
 
     private fun Float.asPercent(): String = "${(this * 100).toInt().coerceIn(0, 100)}%"
 
+    private fun Iterable<ShortArray>.flattenShorts(sampleCount: Int): ShortArray {
+        val output = ShortArray(sampleCount)
+        var offset = 0
+        for (chunk in this) {
+            val count = minOf(chunk.size, output.size - offset)
+            if (count <= 0) break
+            System.arraycopy(chunk, 0, output, offset, count)
+            offset += count
+        }
+        return output
+    }
+
+    private fun String.cleanWhisperText(): String =
+        lineSequence()
+            .map { it.substringAfter("]:", it).trim() }
+            .filter { it.isNotBlank() }
+            .joinToString(" ")
+            .replace(Regex("\\s+"), " ")
+            // Filter out common Whisper hallucination patterns on silence
+            .replace(Regex("^\\[.*?]\\s*$"), "")
+            .replace(Regex("^\\(.*?\\)\\s*$"), "")
+            .trim()
+
     private fun SpeechEngineOption.chunkDurationMs(): Int =
         when (this) {
             SpeechEngineOption.WHISPER -> 2_500
@@ -430,13 +639,52 @@ class CaptionCaptureService : Service() {
             SpeechEngineOption.MLKIT_ADVANCED -> 100
         }
 
+    /**
+     * Whisper high-accuracy mode waits for VAD silence before running one
+     * batch inference over the whole utterance.
+     */
+    private data class WhisperBatchTiming(
+        val preSpeechMs: Int = 320,
+        val minUtteranceMs: Int = 500,
+        val silenceCommitMs: Int,
+        val maxUtteranceMs: Int = 30_000,
+        val vadHangoverChunks: Int,
+    ) {
+        val preSpeechSamples: Int = SystemAudioCapture.SAMPLE_RATE * preSpeechMs / 1_000
+        val minUtteranceSamples: Int = SystemAudioCapture.SAMPLE_RATE * minUtteranceMs / 1_000
+        val silenceCommitSamples: Int = SystemAudioCapture.SAMPLE_RATE * silenceCommitMs / 1_000
+        val maxUtteranceSamples: Int = SystemAudioCapture.SAMPLE_RATE * maxUtteranceMs / 1_000
+    }
+
+    private fun com.jeremysu0818.caption.data.WhisperModelOption.batchTiming(): WhisperBatchTiming =
+        when (this) {
+            com.jeremysu0818.caption.data.WhisperModelOption.TINY -> WhisperBatchTiming(
+                silenceCommitMs = 800,
+                vadHangoverChunks = 4,
+            )
+            com.jeremysu0818.caption.data.WhisperModelOption.BASE -> WhisperBatchTiming(
+                silenceCommitMs = 900,
+                vadHangoverChunks = 5,
+            )
+            com.jeremysu0818.caption.data.WhisperModelOption.SMALL -> WhisperBatchTiming(
+                silenceCommitMs = 1_000,
+                vadHangoverChunks = 5,
+            )
+            com.jeremysu0818.caption.data.WhisperModelOption.MEDIUM -> WhisperBatchTiming(
+                silenceCommitMs = 1_200,
+                vadHangoverChunks = 6,
+            )
+        }
+
     companion object {
+        private const val TAG = "CaptionCapture"
         const val ACTION_START = "com.jeremysu0818.caption.action.START"
         const val ACTION_STOP = "com.jeremysu0818.caption.action.STOP"
         private const val EXTRA_RESULT_CODE = "extra_result_code"
         private const val EXTRA_RESULT_DATA = "extra_result_data"
         private const val CHANNEL_ID = "caption_capture"
         private const val NOTIFICATION_ID = 1001
+        private const val WHISPER_VAD_FRAME_MS = 80
 
         @Volatile
         var isRunning: Boolean = false

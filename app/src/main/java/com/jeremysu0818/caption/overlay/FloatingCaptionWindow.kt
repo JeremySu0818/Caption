@@ -2,77 +2,90 @@ package com.jeremysu0818.caption.overlay
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.graphics.Color
 import android.graphics.PixelFormat
-import android.graphics.Typeface
-import android.graphics.drawable.GradientDrawable
 import android.os.Handler
 import android.os.Looper
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
-import android.widget.LinearLayout
-import android.widget.TextView
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleRegistry
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.ViewModelStore
+import androidx.lifecycle.ViewModelStoreOwner
+import androidx.lifecycle.setViewTreeLifecycleOwner
+import androidx.lifecycle.setViewTreeViewModelStoreOwner
+import androidx.savedstate.SavedStateRegistry
+import androidx.savedstate.SavedStateRegistryController
+import androidx.savedstate.SavedStateRegistryOwner
+import androidx.savedstate.setViewTreeSavedStateRegistryOwner
+import com.jeremysu0818.caption.ui.theme.CaptionTheme
 import kotlin.math.roundToInt
+
+private class OverlayLifecycleOwner : LifecycleOwner, ViewModelStoreOwner, SavedStateRegistryOwner {
+    private val lifecycleRegistry = LifecycleRegistry(this)
+    private val savedStateRegistryController = SavedStateRegistryController.create(this)
+    private val store = ViewModelStore()
+
+    override val lifecycle: Lifecycle get() = lifecycleRegistry
+    override val savedStateRegistry: SavedStateRegistry get() = savedStateRegistryController.savedStateRegistry
+    override val viewModelStore: ViewModelStore get() = store
+
+    fun init() {
+        savedStateRegistryController.performRestore(null)
+        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
+        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_START)
+        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
+    }
+
+    fun destroy() {
+        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE)
+        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_STOP)
+        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
+        store.clear()
+    }
+}
 
 class FloatingCaptionWindow(private val context: Context) {
     private val mainHandler = Handler(Looper.getMainLooper())
     private val windowManager = context.getSystemService(WindowManager::class.java)
-    private var rootView: LinearLayout? = null
-    private var sourceTextView: TextView? = null
-    private var translatedTextView: TextView? = null
-    private var statusTextView: TextView? = null
-    private var layoutParams: WindowManager.LayoutParams? = null
+    private var composeView: ComposeView? = null
+    private var lifecycleOwner: OverlayLifecycleOwner? = null
+
+    private var statusText by mutableStateOf("準備字幕")
+    private var sourceTextState by mutableStateOf("")
+    private var translatedTextState by mutableStateOf<String?>(null)
 
     @SuppressLint("ClickableViewAccessibility")
     fun show() {
         mainHandler.post {
-            if (rootView != null) return@post
+            if (composeView != null) return@post
 
             val density = context.resources.displayMetrics.density
             val width = (context.resources.displayMetrics.widthPixels - 32.dp(density))
                 .coerceAtMost(720.dp(density))
             val initialY = (context.resources.displayMetrics.heightPixels * 0.72f).roundToInt()
 
-            val root = LinearLayout(context).apply {
-                orientation = LinearLayout.VERTICAL
-                setPadding(18.dp(density), 14.dp(density), 18.dp(density), 14.dp(density))
-                background = GradientDrawable().apply {
-                    cornerRadius = 20.dp(density).toFloat()
-                    setColor(Color.argb(205, 20, 20, 24))
-                    setStroke(1.dp(density), Color.argb(80, 255, 255, 255))
-                }
-                alpha = 0.94f
-            }
-
-            statusTextView = TextView(context).apply {
-                text = "準備字幕"
-                setTextColor(Color.argb(210, 255, 255, 255))
-                textSize = 12f
-                includeFontPadding = false
-            }
-            sourceTextView = TextView(context).apply {
-                text = ""
-                setTextColor(Color.WHITE)
-                textSize = 20f
-                typeface = Typeface.DEFAULT_BOLD
-                maxLines = 4
-                includeFontPadding = true
-            }
-            translatedTextView = TextView(context).apply {
-                text = ""
-                visibility = View.GONE
-                setTextColor(Color.argb(230, 214, 232, 255))
-                textSize = 17f
-                maxLines = 4
-                includeFontPadding = true
-            }
-
-            root.addView(statusTextView)
-            root.addView(sourceTextView)
-            root.addView(translatedTextView)
-
+            val owner = OverlayLifecycleOwner().apply { init() }
+            
             val params = WindowManager.LayoutParams(
                 width,
                 WindowManager.LayoutParams.WRAP_CONTENT,
@@ -87,71 +100,80 @@ class FloatingCaptionWindow(private val context: Context) {
                 y = initialY
             }
 
-            root.setOnTouchListener(DragTouchListener(params))
-            windowManager.addView(root, params)
-            rootView = root
-            layoutParams = params
+            val view = ComposeView(context).apply {
+                setViewTreeLifecycleOwner(owner)
+                setViewTreeViewModelStoreOwner(owner)
+                setViewTreeSavedStateRegistryOwner(owner)
+                setContent {
+                    CaptionTheme {
+                        Surface(
+                            modifier = Modifier.pointerInput(Unit) {
+                                detectDragGestures { change, dragAmount ->
+                                    change.consume()
+                                    params.x += dragAmount.x.roundToInt()
+                                    params.y += dragAmount.y.roundToInt()
+                                    windowManager.updateViewLayout(this@apply, params)
+                                }
+                            },
+                            shape = RoundedCornerShape(20.dp),
+                            color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.94f),
+                            contentColor = MaterialTheme.colorScheme.onSurface,
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(horizontal = 18.dp, vertical = 14.dp)
+                            ) {
+                                Text(
+                                    text = statusText,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    style = MaterialTheme.typography.labelSmall
+                                )
+                                if (sourceTextState.isNotBlank()) {
+                                    Text(
+                                        text = sourceTextState,
+                                        style = MaterialTheme.typography.titleLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        maxLines = 4
+                                    )
+                                }
+                                translatedTextState?.takeIf { it.isNotBlank() }?.let { translated ->
+                                    Text(
+                                        text = translated,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        maxLines = 4
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            windowManager.addView(view, params)
+            composeView = view
+            lifecycleOwner = owner
         }
     }
 
     fun updateStatus(status: String) {
         mainHandler.post {
-            statusTextView?.text = status
+            statusText = status
         }
     }
 
     fun updateCaption(sourceText: String, translatedText: String?) {
         mainHandler.post {
-            sourceTextView?.text = sourceText
-            val translatedView = translatedTextView ?: return@post
-            if (translatedText.isNullOrBlank()) {
-                translatedView.text = ""
-                translatedView.visibility = View.GONE
-            } else {
-                translatedView.text = translatedText
-                translatedView.visibility = View.VISIBLE
-            }
+            sourceTextState = sourceText
+            translatedTextState = translatedText
         }
     }
 
     fun dismiss() {
         mainHandler.post {
-            rootView?.let { windowManager.removeView(it) }
-            rootView = null
-            sourceTextView = null
-            translatedTextView = null
-            statusTextView = null
-            layoutParams = null
-        }
-    }
-
-    private inner class DragTouchListener(
-        private val params: WindowManager.LayoutParams,
-    ) : View.OnTouchListener {
-        private var startRawX = 0f
-        private var startRawY = 0f
-        private var startX = 0
-        private var startY = 0
-
-        @SuppressLint("ClickableViewAccessibility")
-        override fun onTouch(view: View, event: MotionEvent): Boolean {
-            when (event.actionMasked) {
-                MotionEvent.ACTION_DOWN -> {
-                    startRawX = event.rawX
-                    startRawY = event.rawY
-                    startX = params.x
-                    startY = params.y
-                    return true
-                }
-
-                MotionEvent.ACTION_MOVE -> {
-                    params.x = startX + (event.rawX - startRawX).roundToInt()
-                    params.y = startY + (event.rawY - startRawY).roundToInt()
-                    windowManager.updateViewLayout(view, params)
-                    return true
-                }
-            }
-            return false
+            composeView?.let { windowManager.removeView(it) }
+            composeView = null
+            lifecycleOwner?.destroy()
+            lifecycleOwner = null
         }
     }
 
