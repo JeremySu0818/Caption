@@ -30,6 +30,10 @@ class MlKitSpeechTranscriber {
     private var recognizer: SpeechRecognizer? = null
     private var recognizerKey: String? = null
 
+    suspend fun isAdvancedAvailable(languageTag: String): Boolean = mutex.withLock {
+        isEngineAvailable(languageTag, SpeechEngineOption.MLKIT_ADVANCED)
+    }
+
     suspend fun transcribe(
         samples: ShortArray,
         languageTag: String,
@@ -85,6 +89,24 @@ class MlKitSpeechTranscriber {
         ).also {
             recognizer = it
             recognizerKey = key
+        }
+    }
+
+    private suspend fun isEngineAvailable(
+        languageTag: String,
+        engine: SpeechEngineOption,
+    ): Boolean {
+        val locale = Locale.forLanguageTag(languageTag.toMlKitLocaleTag())
+        val mode = when (engine) {
+            SpeechEngineOption.MLKIT_ADVANCED -> SpeechRecognizerOptions.Mode.MODE_ADVANCED
+            else -> SpeechRecognizerOptions.Mode.MODE_BASIC
+        }
+        return when (recognizerFor(locale, mode).checkStatus()) {
+            FeatureStatus.AVAILABLE,
+            FeatureStatus.DOWNLOADABLE,
+            FeatureStatus.DOWNLOADING,
+            -> true
+            else -> false
         }
     }
 

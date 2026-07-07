@@ -9,6 +9,7 @@ import android.media.projection.MediaProjectionManager
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -21,6 +22,7 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -31,8 +33,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -46,6 +51,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -58,6 +64,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -69,6 +76,7 @@ import com.jeremysu0818.caption.data.WhisperModelOption
 import com.jeremysu0818.caption.service.CaptionCaptureService
 import com.jeremysu0818.caption.ui.theme.CaptionTheme
 import com.jeremysu0818.caption.whisper.ModelDownloadState
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -129,6 +137,9 @@ private fun CaptionApp(
     var overlayPrompted by remember { mutableStateOf(false) }
     var recordPrompted by remember { mutableStateOf(false) }
     var notificationPrompted by remember { mutableStateOf(false) }
+    var isMlKitAdvancedAvailable by remember { mutableStateOf<Boolean?>(null) }
+    var downloadJob by remember { mutableStateOf<Job?>(null) }
+
 
     val mediaProjectionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult(),
@@ -179,6 +190,21 @@ private fun CaptionApp(
 
     LaunchedEffect(settings.model) {
         CaptionGraph.modelRepository.refresh(settings.model)
+    }
+
+    LaunchedEffect(settings.sourceLanguageTag) {
+        isMlKitAdvancedAvailable = runCatching {
+            CaptionGraph.mlKitSpeechTranscriber.isAdvancedAvailable(settings.sourceLanguageTag)
+        }.getOrDefault(false)
+    }
+
+    LaunchedEffect(isMlKitAdvancedAvailable, settings.speechEngine) {
+        if (
+            isMlKitAdvancedAvailable == false &&
+            settings.speechEngine == SpeechEngineOption.MLKIT_ADVANCED
+        ) {
+            CaptionGraph.preferences.updateSpeechEngine(SpeechEngineOption.MLKIT_BASIC)
+        }
     }
 
     LaunchedEffect(startRequestCount) {
@@ -297,7 +323,15 @@ private fun CaptionApp(
                     Column(modifier = Modifier.animateContentSize()) {
                         SpeechEngineSection(
                             settings = settings,
+                            isMlKitAdvancedAvailable = isMlKitAdvancedAvailable != false,
                             onEngineSelected = CaptionGraph.preferences::updateSpeechEngine,
+                            onUnsupportedAdvancedSelected = {
+                                Toast.makeText(
+                                    context,
+                                    "當前設備不支援 ML Kit Advanced",
+                                    Toast.LENGTH_SHORT,
+                                ).show()
+                            },
                         )
                         
                         AnimatedVisibility(
@@ -312,8 +346,21 @@ private fun CaptionApp(
                                     downloadState = downloadState,
                                     onModelSelected = CaptionGraph.preferences::updateModel,
                                     onDownloadModel = {
+                                        downloadJob = scope.launch {
+                                            try {
+                                                CaptionGraph.modelRepository.ensureModel(settings.model)
+                                            } finally {
+                                                downloadJob = null
+                                            }
+                                        }
+                                    },
+                                    onCancelDownload = {
+                                        downloadJob?.cancel()
+                                        downloadJob = null
+                                    },
+                                    onDeleteModel = {
                                         scope.launch {
-                                            CaptionGraph.modelRepository.ensureModel(settings.model)
+                                            CaptionGraph.modelRepository.deleteModel(settings.model)
                                         }
                                     },
                                 )
@@ -462,7 +509,9 @@ private fun PermissionRow(
 @Composable
 private fun SpeechEngineSection(
     settings: CaptionSettings,
+    isMlKitAdvancedAvailable: Boolean,
     onEngineSelected: (SpeechEngineOption) -> Unit,
+    onUnsupportedAdvancedSelected: () -> Unit,
 ) {
     Column(
         modifier = Modifier.fillMaxWidth().padding(18.dp),
@@ -470,21 +519,36 @@ private fun SpeechEngineSection(
     ) {
         Text("辨識引擎", style = MaterialTheme.typography.titleMedium)
         SpeechEngineOption.entries.forEach { option ->
+            val isAdvancedOption = option == SpeechEngineOption.MLKIT_ADVANCED
+            val isOptionEnabled = !isAdvancedOption || isMlKitAdvancedAvailable
+
             FilterChip(
+                modifier = Modifier.alpha(if (isOptionEnabled) 1f else 0.45f),
                 selected = settings.speechEngine == option,
-                onClick = { onEngineSelected(option) },
+                onClick = {
+                    if (isOptionEnabled) {
+                        onEngineSelected(option)
+                    } else {
+                        onUnsupportedAdvancedSelected()
+                    }
+                },
                 label = { Text(option.label) },
             )
         }
-        Text(
-            text = when (settings.speechEngine) {
-                SpeechEngineOption.WHISPER -> "使用 whisper.cpp；偵測到一句話結束後整句轉錄，約延遲 3-5 秒。"
-                SpeechEngineOption.MLKIT_BASIC -> "使用 ML Kit Basic，多數 Android 12+ 裝置可用。"
-                SpeechEngineOption.MLKIT_ADVANCED -> "使用 ML Kit Advanced，需支援 AICore/Gemini Nano 的裝置。"
-            },
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        AnimatedContent(
+            targetState = settings.speechEngine,
+            label = "engine_description"
+        ) { engine ->
+            Text(
+                text = when (engine) {
+                    SpeechEngineOption.WHISPER -> "使用 whisper.cpp；偵測到一句話結束後整句轉錄，約延遲 3-5 秒。"
+                    SpeechEngineOption.MLKIT_BASIC -> "使用 ML Kit Basic，多數 Android 12+ 裝置可用。"
+                    SpeechEngineOption.MLKIT_ADVANCED -> "使用 ML Kit Advanced，需支援 AICore/Gemini Nano 的裝置。"
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 
@@ -494,7 +558,76 @@ private fun WhisperModelSection(
     downloadState: ModelDownloadState,
     onModelSelected: (WhisperModelOption) -> Unit,
     onDownloadModel: () -> Unit,
+    onCancelDownload: () -> Unit,
+    onDeleteModel: () -> Unit,
 ) {
+    var showDeleteConfirmation by remember { mutableStateOf(false) }
+    var showCancelConfirmation by remember { mutableStateOf(false) }
+
+    if (showCancelConfirmation) {
+        AlertDialog(
+            onDismissRequest = { showCancelConfirmation = false },
+            title = {
+                Text(text = "確認取消下載")
+            },
+            text = {
+                Text(text = "確定要取消下載 ${settings.model.displayName} 嗎？目前的下載進度將會遺失。")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showCancelConfirmation = false
+                        onCancelDownload()
+                    },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text("確認取消")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showCancelConfirmation = false }
+                ) {
+                    Text("返回")
+                }
+            }
+        )
+    }
+
+    if (showDeleteConfirmation) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirmation = false },
+            title = {
+                Text(text = "確認刪除模型")
+            },
+            text = {
+                Text(text = "確定要刪除 ${settings.model.displayName} 嗎？此操作將會移除已下載的模型檔案，之後需要重新下載才能使用。")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteConfirmation = false
+                        onDeleteModel()
+                    },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text("確認刪除")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showDeleteConfirmation = false }
+                ) {
+                    Text("取消")
+                }
+            }
+        )
+    }
+
     val selectedDownloadState = if (downloadState.model == settings.model) {
         downloadState
     } else {
@@ -529,7 +662,7 @@ private fun WhisperModelSection(
         Text(
             text = when {
                 selectedDownloadState.isDownloaded -> "模型已下載"
-                selectedDownloadState.isDownloading -> "模型下載中 ${selectedDownloadState.progress.asPercent()}"
+                selectedDownloadState.isDownloading -> buildDownloadStatusText(selectedDownloadState)
                 selectedDownloadState.errorMessage != null -> selectedDownloadState.errorMessage
                 else -> "模型尚未下載"
             },
@@ -540,17 +673,71 @@ private fun WhisperModelSection(
                 MaterialTheme.colorScheme.onSurfaceVariant
             },
         )
-        if (selectedDownloadState.isDownloading) {
+        AnimatedVisibility(
+            visible = selectedDownloadState.isDownloading,
+            enter = expandVertically() + fadeIn(),
+            exit = shrinkVertically() + fadeOut()
+        ) {
             LinearProgressIndicator(
                 progress = { selectedDownloadState.progress.coerceIn(0f, 1f) },
                 modifier = Modifier.fillMaxWidth(),
             )
         }
-        Button(
-            onClick = onDownloadModel,
-            enabled = !selectedDownloadState.isDownloaded && !selectedDownloadState.isDownloading,
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text("下載 ${settings.model.displayName}")
+            Button(
+                modifier = Modifier.weight(1f),
+                onClick = onDownloadModel,
+                enabled = !selectedDownloadState.isDownloaded && !selectedDownloadState.isDownloading,
+            ) {
+                Text("下載 ${settings.model.displayName}")
+            }
+            val buttonState = when {
+                selectedDownloadState.isDownloading -> 1
+                selectedDownloadState.isDownloaded -> 2
+                else -> 0
+            }
+            Crossfade(
+                targetState = buttonState,
+                modifier = Modifier.weight(1f),
+                label = "action_button"
+            ) { state ->
+                when (state) {
+                    1 -> {
+                        OutlinedButton(
+                            modifier = Modifier.fillMaxWidth(),
+                            onClick = { showCancelConfirmation = true },
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = MaterialTheme.colorScheme.error
+                            ),
+                            border = BorderStroke(
+                                width = 1.dp,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        ) {
+                            Text("取消下載")
+                        }
+                    }
+                    2 -> {
+                        OutlinedButton(
+                            modifier = Modifier.fillMaxWidth(),
+                            onClick = { showDeleteConfirmation = true },
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = MaterialTheme.colorScheme.error
+                            ),
+                            border = BorderStroke(
+                                width = 1.dp,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        ) {
+                            Text("刪除 ${settings.model.displayName}")
+                        }
+                    }
+                    else -> Spacer(modifier = Modifier.fillMaxWidth())
+                }
+            }
         }
     }
 }
@@ -595,26 +782,33 @@ private fun TranslationSection(
                 selectedTag = settings.sourceLanguageTag,
                 onSelected = onSourceChanged,
             )
-            if (settings.translationEnabled) {
-                LanguageDropdown(
-                    modifier = Modifier.weight(1f),
-                    label = "目標",
-                    selectedTag = settings.targetLanguageTag,
-                    onSelected = onTargetChanged,
-                )
-            } else {
-                Spacer(modifier = Modifier.weight(1f))
+            Crossfade(
+                targetState = settings.translationEnabled,
+                modifier = Modifier.weight(1f),
+                label = "target_language"
+            ) { enabled ->
+                if (enabled) {
+                    LanguageDropdown(
+                        modifier = Modifier.fillMaxWidth(),
+                        label = "目標",
+                        selectedTag = settings.targetLanguageTag,
+                        onSelected = onTargetChanged,
+                    )
+                } else {
+                    Spacer(modifier = Modifier.fillMaxWidth())
+                }
             }
         }
-        Text(
-            text = if (settings.translationEnabled) {
-                "顯示來源與翻譯字幕"
-            } else {
-                "只顯示來源字幕"
-            },
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        AnimatedContent(
+            targetState = settings.translationEnabled,
+            label = "translation_hint"
+        ) { enabled ->
+            Text(
+                text = if (enabled) "顯示來源與翻譯字幕" else "只顯示來源字幕",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 
@@ -658,4 +852,31 @@ private fun Context.overlaySettingsIntent(): Intent =
         "package:$packageName".toUri(),
     )
 
+private fun buildDownloadStatusText(state: ModelDownloadState): String {
+    val progress = state.progress.asPercent()
+    val sizeProgress = "${state.downloadedBytes.asReadableSize()} / ${state.totalBytes.asReadableSize()}"
+    val speed = state.downloadSpeedBytesPerSecond.asReadableSpeed()
+    return "模型下載中 $progress · $sizeProgress · $speed"
+}
+
 private fun Float.asPercent(): String = "${(this * 100).toInt().coerceIn(0, 100)}%"
+
+private fun Long.asReadableSpeed(): String =
+    if (this <= 0L) "計算中"
+    else "${asReadableSize()}/s"
+
+private fun Long.asReadableSize(): String {
+    if (this < 0L) return "--"
+    if (this < 1024L) return "${this} B"
+
+    val units = arrayOf("KB", "MB", "GB", "TB")
+    var value = this.toDouble()
+    var unitIndex = -1
+    while (value >= 1024.0 && unitIndex < units.lastIndex) {
+        value /= 1024.0
+        unitIndex++
+    }
+
+    val decimals = if (value >= 100 || unitIndex == 0) 0 else 1
+    return "%.${decimals}f %s".format(value, units[unitIndex])
+}

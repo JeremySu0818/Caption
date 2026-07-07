@@ -9,7 +9,7 @@ enum class SpeechEngineOption(
     MLKIT_ADVANCED("mlkit_advanced", "ML Kit Advanced");
 
     companion object {
-        val default: SpeechEngineOption = WHISPER
+        val default: SpeechEngineOption = MLKIT_BASIC
 
         fun fromId(id: String?): SpeechEngineOption =
             entries.firstOrNull { it.id == id } ?: default

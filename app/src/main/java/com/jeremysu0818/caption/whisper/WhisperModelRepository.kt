@@ -7,7 +7,9 @@ import java.io.FileOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
 import java.security.MessageDigest
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,6 +26,7 @@ data class ModelDownloadState(
     val progress: Float = 0f,
     val downloadedBytes: Long = 0L,
     val totalBytes: Long = -1L,
+    val downloadSpeedBytesPerSecond: Long = 0L,
     val errorMessage: String? = null,
 )
 
@@ -48,6 +51,25 @@ class WhisperModelRepository(context: Context) {
         )
     }
 
+    suspend fun deleteModel(option: WhisperModelOption) = downloadMutex.withLock {
+        withContext(Dispatchers.IO) {
+            val destination = modelFile(option)
+            val tempFile = File(modelDir, "${option.fileName}.download")
+
+            if (tempFile.exists()) {
+                tempFile.delete()
+            }
+            if (destination.exists()) {
+                destination.delete()
+            }
+
+            _downloadState.value = ModelDownloadState(
+                model = option,
+                isDownloaded = false,
+            )
+        }
+    }
+
     suspend fun ensureModel(option: WhisperModelOption): File = downloadMutex.withLock {
         withContext(Dispatchers.IO) {
             modelDir.mkdirs()
@@ -59,6 +81,7 @@ class WhisperModelRepository(context: Context) {
                     progress = 1f,
                     downloadedBytes = destination.length(),
                     totalBytes = destination.length(),
+                    downloadSpeedBytesPerSecond = 0L,
                 )
                 return@withContext destination
             }
@@ -70,6 +93,7 @@ class WhisperModelRepository(context: Context) {
                 model = option,
                 isDownloaded = false,
                 isDownloading = true,
+                downloadSpeedBytesPerSecond = 0L,
             )
 
             try {
@@ -92,6 +116,7 @@ class WhisperModelRepository(context: Context) {
                     progress = 1f,
                     downloadedBytes = destination.length(),
                     totalBytes = destination.length(),
+                    downloadSpeedBytesPerSecond = 0L,
                 )
                 destination
             } catch (error: Throwable) {
@@ -100,7 +125,7 @@ class WhisperModelRepository(context: Context) {
                     model = option,
                     isDownloaded = false,
                     isDownloading = false,
-                    errorMessage = error.message ?: "模型下載失敗",
+                    errorMessage = if (error is CancellationException) null else (error.message ?: "模型下載失敗"),
                 )
                 throw error
             }
@@ -115,6 +140,12 @@ class WhisperModelRepository(context: Context) {
             setRequestProperty("User-Agent", "Caption Android")
         }
 
+        val cancelHandler = currentCoroutineContext()[Job]?.invokeOnCompletion { error ->
+            if (error is CancellationException) {
+                connection.disconnect()
+            }
+        }
+
         try {
             val code = connection.responseCode
             if (code !in 200..299) {
@@ -123,6 +154,9 @@ class WhisperModelRepository(context: Context) {
 
             val totalBytes = connection.contentLengthLong
             var downloadedBytes = 0L
+            var speedBytesPerSecond = 0L
+            var lastSpeedSampleBytes = 0L
+            var lastSpeedSampleAtMs = System.currentTimeMillis()
             val digest = MessageDigest.getInstance("SHA-1")
             val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
 
@@ -141,6 +175,18 @@ class WhisperModelRepository(context: Context) {
                         } else {
                             0f
                         }
+                        val nowMs = System.currentTimeMillis()
+                        val elapsedMs = nowMs - lastSpeedSampleAtMs
+                        if (elapsedMs >= SPEED_SAMPLE_WINDOW_MS) {
+                            val bytesDelta = downloadedBytes - lastSpeedSampleBytes
+                            speedBytesPerSecond = if (elapsedMs > 0) {
+                                (bytesDelta * 1000L) / elapsedMs
+                            } else {
+                                0L
+                            }
+                            lastSpeedSampleBytes = downloadedBytes
+                            lastSpeedSampleAtMs = nowMs
+                        }
                         _downloadState.value = ModelDownloadState(
                             model = option,
                             isDownloaded = false,
@@ -148,6 +194,7 @@ class WhisperModelRepository(context: Context) {
                             progress = progress.coerceIn(0f, 1f),
                             downloadedBytes = downloadedBytes,
                             totalBytes = totalBytes,
+                            downloadSpeedBytesPerSecond = speedBytesPerSecond,
                         )
                     }
                 }
@@ -155,11 +202,10 @@ class WhisperModelRepository(context: Context) {
 
             val downloadedSha1 = digest.digest().toHexString()
             if (!downloadedSha1.equals(option.sha1, ignoreCase = true)) {
-                throw IllegalStateException(
-                    "模型校驗失敗：${option.displayName} 的 SHA-1 不符合官方檔案。"
-                )
+                throw IllegalStateException("SHA-1 不符，預期 ${option.sha1}，實際 $downloadedSha1")
             }
         } finally {
+            cancelHandler?.dispose()
             connection.disconnect()
         }
     }
@@ -179,5 +225,9 @@ class WhisperModelRepository(context: Context) {
 
     private fun ByteArray.toHexString(): String = joinToString(separator = "") {
         "%02x".format(it.toInt() and 0xff)
+    }
+
+    companion object {
+        private const val SPEED_SAMPLE_WINDOW_MS = 500L
     }
 }
