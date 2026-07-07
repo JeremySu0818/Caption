@@ -10,7 +10,8 @@ data class CaptionLine(
     val sourceText: String,
     val translatedText: String? = null,
     val isTranslating: Boolean = false,
-    val isFinal: Boolean = true
+    val isFinal: Boolean = true,
+    val showTypewriter: Boolean = true
 )
 
 data class CaptionRuntimeState(
@@ -52,7 +53,7 @@ object CaptionRuntimeStore {
 
     fun addOrUpdatePartialSourceText(id: String, text: String) {
         _state.update { state ->
-            val newLine = CaptionLine(id = id, sourceText = text, isFinal = false)
+            val newLine = CaptionLine(id = id, sourceText = text, isFinal = false, showTypewriter = false)
             state.copy(
                 isRunning = true,
                 status = "即時字幕執行中",
@@ -66,12 +67,14 @@ object CaptionRuntimeStore {
         _state.update { state ->
             val existingLine = state.lines.firstOrNull { it.id == id }
             val translatedText = existingLine?.translatedText
+            val showTypewriter = existingLine?.showTypewriter ?: true
             val newLine = CaptionLine(
                 id = id,
                 sourceText = text,
                 translatedText = translatedText,
                 isFinal = true,
                 isTranslating = isTranslating,
+                showTypewriter = showTypewriter
             )
             state.copy(
                 isRunning = true,

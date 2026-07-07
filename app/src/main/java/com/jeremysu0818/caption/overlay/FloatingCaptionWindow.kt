@@ -9,10 +9,13 @@ import android.view.Gravity
 import android.view.WindowManager
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,6 +28,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -34,6 +38,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -129,57 +134,40 @@ class FloatingCaptionWindow(private val context: Context) {
                 setContent {
                     val state by CaptionRuntimeStore.state.collectAsState()
                     CaptionTheme {
-                        var isExpanded by remember { mutableStateOf(false) }
                         val screenHeight = androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp.dp
-                        val targetMaxHeight = if (isExpanded) screenHeight * 0.6f else screenHeight / 8f
-                        val maxHeight by animateDpAsState(targetValue = targetMaxHeight, label = "maxHeight")
+                        val minHeightLimit = screenHeight / 6f
+                        val maxHeightLimit = screenHeight * 0.6f
 
-                        Column(
-                            modifier = Modifier
-                                .height(maxHeight)
-                                .pointerInput(Unit) {
-                                    detectDragGestures { change, dragAmount ->
-                                        change.consume()
-                                        params.x += dragAmount.x.roundToInt()
-                                        params.y += dragAmount.y.roundToInt()
-                                        windowManager.updateViewLayout(this@apply, params)
-                                    }
-                                }
+                        var targetHeight by remember(screenHeight) { mutableStateOf(minHeightLimit) }
+                        val maxHeight by animateDpAsState(targetValue = targetHeight, label = "maxHeight")
+
+                        var isPressing by remember { mutableStateOf(false) }
+                        val barAlpha by animateFloatAsState(targetValue = if (isPressing) 0.8f else 0.2f, label = "barAlpha")
+
+                        Box(
+                            modifier = Modifier.height(maxHeight)
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable(
-                                        interactionSource = remember { MutableInteractionSource() },
-                                        indication = null
-                                    ) { isExpanded = !isExpanded }
-                                    .padding(top = 4.dp, bottom = 4.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(32.dp, 4.dp)
-                                        .background(
-                                            color = Color.White.copy(alpha = 0.6f),
-                                            shape = RoundedCornerShape(2.dp)
-                                        )
-                                )
-                            }
-
                             Surface(
-                                modifier = Modifier.weight(1f),
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(top = 20.dp),
                                 shape = RoundedCornerShape(20.dp),
                                 color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.94f),
                                 contentColor = MaterialTheme.colorScheme.onSurface,
                             ) {
-                                val listState = rememberLazyListState()
-                                val linesCount = state.lines.size
+                                 val listState = rememberLazyListState()
+                                 val linesCount = state.lines.size
+                                 val isAtBottom by remember {
+                                     derivedStateOf {
+                                         listState.firstVisibleItemIndex <= 1
+                                     }
+                                 }
 
-                                LaunchedEffect(linesCount) {
-                                    if (linesCount > 0) {
-                                        listState.animateScrollToItem(0)
-                                    }
-                                }
+                                 LaunchedEffect(linesCount) {
+                                     if (linesCount > 0 && isAtBottom) {
+                                         listState.animateScrollToItem(0)
+                                     }
+                                 }
 
                                 LazyColumn(
                                     state = listState,
@@ -207,14 +195,24 @@ class FloatingCaptionWindow(private val context: Context) {
                                         .padding(horizontal = 18.dp)
                                 ) {
                                     items(state.lines.reversed(), key = { line -> line.id }) { line ->
+                                        val isNewest = line.id == state.lines.lastOrNull()?.id
                                         Column(
                                             modifier = Modifier.animateContentSize()
                                         ) {
-                                            TypewriterText(
-                                                text = line.sourceText,
-                                                style = MaterialTheme.typography.titleLarge,
-                                                fontWeight = FontWeight.Bold,
-                                            )
+                                            if (isNewest && line.showTypewriter) {
+                                                TypewriterText(
+                                                    text = line.sourceText,
+                                                    style = MaterialTheme.typography.titleLarge,
+                                                    fontWeight = FontWeight.Bold,
+                                                )
+                                            } else {
+                                                Text(
+                                                    text = line.sourceText,
+                                                    style = MaterialTheme.typography.titleLarge,
+                                                    fontWeight = FontWeight.Bold,
+                                                )
+                                            }
+
                                             if (line.isTranslating && line.translatedText == null) {
                                                 Text(
                                                     text = "...",
@@ -222,14 +220,113 @@ class FloatingCaptionWindow(private val context: Context) {
                                                     style = MaterialTheme.typography.bodyLarge,
                                                 )
                                             } else if (line.translatedText != null && line.translatedText.isNotBlank()) {
-                                                TypewriterText(
-                                                    text = line.translatedText,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                    style = MaterialTheme.typography.bodyLarge,
-                                                )
+                                                if (isNewest) {
+                                                    TypewriterText(
+                                                        text = line.translatedText,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                        style = MaterialTheme.typography.bodyLarge,
+                                                    )
+                                                } else {
+                                                    Text(
+                                                        text = line.translatedText,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                        style = MaterialTheme.typography.bodyLarge,
+                                                    )
+                                                }
                                             }
                                         }
                                     }
+                                }
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .pointerInput(Unit) {
+                                        detectDragGestures(
+                                            onDragStart = { isPressing = true },
+                                            onDragEnd = { isPressing = false },
+                                            onDragCancel = { isPressing = false },
+                                            onDrag = { change, dragAmount ->
+                                                change.consume()
+                                                params.x += dragAmount.x.roundToInt()
+                                                params.y += dragAmount.y.roundToInt()
+                                                windowManager.updateViewLayout(this@apply, params)
+                                            }
+                                        )
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .width(48.dp)
+                                        .height(28.dp)
+                                        .pointerInput(screenHeight) {
+                                            awaitPointerEventScope {
+                                                while (true) {
+                                                    val down = awaitFirstDown()
+                                                    isPressing = true
+                                                    var dragTriggered = false
+                                                    var accumulatedDrag = 0f
+                                                    var pointer = down
+
+                                                    while (true) {
+                                                        val event = awaitPointerEvent()
+                                                        val anyPressed = event.changes.any { it.pressed }
+                                                        if (!anyPressed) break
+
+                                                        val change = event.changes.firstOrNull { it.id == pointer.id } ?: break
+                                                        if (change.isConsumed) break
+
+                                                        val dragAmount = change.position.y - change.previousPosition.y
+                                                        accumulatedDrag += dragAmount
+
+                                                        if (!dragTriggered && kotlin.math.abs(accumulatedDrag) > viewConfiguration.touchSlop) {
+                                                            dragTriggered = true
+                                                        }
+
+                                                        if (dragTriggered) {
+                                                            change.consume()
+                                                            val deltaDp = (dragAmount / density).dp
+                                                            val oldHeight = targetHeight
+                                                            val newHeight = (targetHeight - deltaDp).coerceIn(minHeightLimit, maxHeightLimit)
+
+                                                            if (newHeight != oldHeight) {
+                                                                targetHeight = newHeight
+                                                                params.y += dragAmount.roundToInt()
+                                                                windowManager.updateViewLayout(this@apply, params)
+                                                            }
+                                                        }
+                                                    }
+
+                                                    isPressing = false
+
+                                                    if (!dragTriggered) {
+                                                        val midpoint = (minHeightLimit + maxHeightLimit) / 2
+                                                        val isAtMin = kotlin.math.abs(targetHeight.value - minHeightLimit.value) < 1f
+                                                        val isAtMax = kotlin.math.abs(targetHeight.value - maxHeightLimit.value) < 1f
+
+                                                        val nextHeight = when {
+                                                            isAtMin -> maxHeightLimit
+                                                            isAtMax -> minHeightLimit
+                                                            targetHeight < midpoint -> minHeightLimit
+                                                            else -> maxHeightLimit
+                                                        }
+                                                        targetHeight = nextHeight
+                                                    }
+                                                }
+                                            }
+                                        },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(32.dp, 4.dp)
+                                            .background(
+                                                color = Color.White.copy(alpha = barAlpha),
+                                                shape = RoundedCornerShape(2.dp)
+                                            )
+                                    )
                                 }
                             }
                         }
