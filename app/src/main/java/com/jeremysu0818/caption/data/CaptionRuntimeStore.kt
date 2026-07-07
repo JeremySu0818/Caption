@@ -53,7 +53,7 @@ object CaptionRuntimeStore {
 
     fun addOrUpdatePartialSourceText(id: String, text: String) {
         _state.update { state ->
-            val newLine = CaptionLine(id = id, sourceText = text, isFinal = false, showTypewriter = false)
+            val newLine = CaptionLine(id = id, sourceText = text, isFinal = false, showTypewriter = true)
             state.copy(
                 isRunning = true,
                 status = "即時字幕執行中",

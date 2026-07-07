@@ -10,12 +10,15 @@ import android.view.WindowManager
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.Spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.ui.input.pointer.positionChange
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -44,6 +47,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -107,8 +111,14 @@ class FloatingCaptionWindow(private val context: Context) {
             if (composeView != null) return@post
 
             val density = context.resources.displayMetrics.density
-            val width = (context.resources.displayMetrics.widthPixels - 32.dp(density))
-                .coerceAtMost(720.dp(density))
+            val screenWidth = context.resources.displayMetrics.widthPixels
+            val baseWidth = (screenWidth - 32.dp(density)).coerceAtMost(720.dp(density))
+            
+            // Multiply visual width by 0.9. Keep padding to allow M3 scaling without clipping.
+            val visualWidth = (baseWidth * 0.9f).roundToInt()
+            val paddingDp = 16.dp(density)
+            val width = visualWidth + (paddingDp * 2)
+
             val initialY = (context.resources.displayMetrics.heightPixels * 0.72f).roundToInt()
 
             val owner = OverlayLifecycleOwner().apply { init() }
@@ -123,7 +133,7 @@ class FloatingCaptionWindow(private val context: Context) {
                 PixelFormat.TRANSLUCENT,
             ).apply {
                 gravity = Gravity.TOP or Gravity.START
-                x = 16.dp(density)
+                x = (screenWidth - width) / 2
                 y = initialY
             }
 
@@ -144,13 +154,33 @@ class FloatingCaptionWindow(private val context: Context) {
                         var isPressing by remember { mutableStateOf(false) }
                         val barAlpha by animateFloatAsState(targetValue = if (isPressing) 0.8f else 0.2f, label = "barAlpha")
 
+                        var isTouched by remember { mutableStateOf(false) }
+                        val scale by animateFloatAsState(
+                            targetValue = if (isTouched) 1.04f else 1.0f,
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessLow
+                            ),
+                            label = "scale"
+                        )
+
                         Box(
-                            modifier = Modifier.height(maxHeight)
+                            modifier = Modifier
+                                .height(maxHeight + 32.dp)
                         ) {
-                            Surface(
+                            Box(
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .padding(top = 20.dp),
+                                    .graphicsLayer {
+                                        scaleX = scale
+                                        scaleY = scale
+                                    }
+                                    .padding(horizontal = 16.dp, vertical = 16.dp)
+                            ) {
+                                Surface(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(top = 20.dp),
                                 shape = RoundedCornerShape(20.dp),
                                 color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.94f),
                                 contentColor = MaterialTheme.colorScheme.onSurface,
@@ -243,6 +273,14 @@ class FloatingCaptionWindow(private val context: Context) {
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .pointerInput(Unit) {
+                                        awaitPointerEventScope {
+                                            while (true) {
+                                                val event = awaitPointerEvent(PointerEventPass.Initial)
+                                                isTouched = event.changes.any { it.pressed }
+                                            }
+                                        }
+                                    }
+                                    .pointerInput(Unit) {
                                         detectDragGestures(
                                             onDragStart = { isPressing = true },
                                             onDragEnd = { isPressing = false },
@@ -329,6 +367,7 @@ class FloatingCaptionWindow(private val context: Context) {
                                     )
                                 }
                             }
+                            }
                         }
                     }
                 }
@@ -366,25 +405,19 @@ private fun TypewriterText(
     style: androidx.compose.ui.text.TextStyle = androidx.compose.material3.LocalTextStyle.current,
     fontWeight: FontWeight? = null,
 ) {
-    var displayedText by remember { mutableStateOf("") }
+    var displayedText by rememberSaveable { mutableStateOf("") }
 
     LaunchedEffect(text) {
-        var commonPrefixLength = 0
-        while (commonPrefixLength < displayedText.length &&
-            commonPrefixLength < text.length &&
-            displayedText[commonPrefixLength] == text[commonPrefixLength]
-        ) {
-            commonPrefixLength++
-        }
-
-        if (displayedText.length > commonPrefixLength) {
-            displayedText = displayedText.substring(0, commonPrefixLength)
+        val keepLength = displayedText.length.coerceAtMost(text.length)
+        // 瞬間替換前面已經顯示的長度（如果有修改，直接套用，不作動畫以免整段抽搐）
+        if (displayedText != text.substring(0, keepLength)) {
+            displayedText = text.substring(0, keepLength)
         }
 
         val charsToType = text.length - displayedText.length
         if (charsToType > 0) {
             val totalDuration = charsToType.toLong() * 20L
-            val durationMs = totalDuration.coerceIn(200L, 800L)
+            val durationMs = totalDuration.coerceIn(150L, 800L)
             val frameDelay = 16L
             val totalFrames = (durationMs / frameDelay).coerceAtLeast(1)
             val charsPerFrame = (charsToType.toFloat() / totalFrames).coerceAtLeast(1f)
