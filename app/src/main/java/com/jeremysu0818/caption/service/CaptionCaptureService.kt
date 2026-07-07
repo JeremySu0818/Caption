@@ -30,6 +30,7 @@ import com.jeremysu0818.caption.data.SpeechEngineOption
 import com.jeremysu0818.caption.overlay.FloatingCaptionWindow
 import com.jeremysu0818.caption.tile.CaptionTileService
 import java.io.File
+import java.util.UUID
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -41,10 +42,16 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 
 class CaptionCaptureService : Service() {
+    private data class TranslationRequest(
+        val id: String,
+        val sourceText: String,
+        val sourceLanguageTag: String,
+        val targetLanguageTag: String,
+    )
+
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val mainHandler = Handler(Looper.getMainLooper())
     private var sessionJob: Job? = null
@@ -84,7 +91,7 @@ class CaptionCaptureService : Service() {
 
     override fun onDestroy() {
         stopSession("已停止", stopProjection = true, removeForeground = true)
-        runBlocking(Dispatchers.Default) {
+        CoroutineScope(Dispatchers.Default).launch {
             CaptionGraph.transcriber.release()
             CaptionGraph.translator.close()
             CaptionGraph.mlKitSpeechTranscriber.close()
@@ -100,10 +107,7 @@ class CaptionCaptureService : Service() {
         isRunning = true
         CaptionTileService.requestTileRefresh(this)
 
-        val overlay = FloatingCaptionWindow(this).also {
-            it.show()
-            it.updateStatus("準備即時字幕")
-        }
+        val overlay = FloatingCaptionWindow(this).also { it.show() }
         overlayWindow = overlay
         CaptionRuntimeStore.setRunning("準備即時字幕")
 
@@ -122,14 +126,12 @@ class CaptionCaptureService : Service() {
                                 } else {
                                     "下載 ${state.model.displayName}"
                                 }
-                                overlay.updateStatus(status)
                                 CaptionRuntimeStore.updateStatus(status)
                                 updateNotification(status)
                             }
                         }
                     }
 
-                    overlay.updateStatus("確認 Whisper 模型")
                     CaptionRuntimeStore.updateStatus("確認 Whisper 模型")
                     CaptionGraph.modelRepository.ensureModel(modelOption).also {
                         downloadStatusJob.cancel()
@@ -138,27 +140,51 @@ class CaptionCaptureService : Service() {
                     null
                 }
 
-                overlay.updateStatus("擷取系統音訊")
                 CaptionRuntimeStore.updateStatus("擷取系統音訊")
                 updateNotification("擷取系統音訊")
-                if (settingsAtStart.speechEngine == SpeechEngineOption.WHISPER) {
-                    runWhisperBatchCaptureLoop(
-                        projection = projection,
-                        modelFile = requireNotNull(modelFile),
-                        modelOption = modelOption,
-                        overlay = overlay,
-                    )
-                } else {
-                    runMlKitStreamingCaptureLoop(
-                        projection = projection,
-                        overlay = overlay,
-                    )
+                val translationChannel = Channel<TranslationRequest>(Channel.UNLIMITED)
+                val translationJob = launch(Dispatchers.Default) {
+                    for (line in translationChannel) {
+                        try {
+                            val translated = CaptionGraph.translator.translate(
+                                text = line.sourceText,
+                                sourceLanguageTag = line.sourceLanguageTag,
+                                targetLanguageTag = line.targetLanguageTag,
+                            )
+                            withContext(Dispatchers.Main.immediate) {
+                                CaptionRuntimeStore.updateTranslation(line.id, translated)
+                            }
+                        } catch (e: Exception) {
+                            if (e is CancellationException) throw e
+                            Log.e(TAG, "Translation failed", e)
+                            withContext(Dispatchers.Main.immediate) {
+                                CaptionRuntimeStore.updateTranslation(line.id, "翻譯失敗")
+                            }
+                        }
+                    }
+                }
+                try {
+                    if (settingsAtStart.speechEngine == SpeechEngineOption.WHISPER) {
+                        runWhisperBatchCaptureLoop(
+                            projection = projection,
+                            modelFile = requireNotNull(modelFile),
+                            modelOption = modelOption,
+                            translationChannel = translationChannel,
+                        )
+                    } else {
+                        runMlKitStreamingCaptureLoop(
+                            projection = projection,
+                            translationChannel = translationChannel,
+                        )
+                    }
+                } finally {
+                    translationChannel.close()
+                    translationJob.join()
                 }
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (error: Throwable) {
                 val message = error.message ?: "即時字幕服務失敗。"
-                overlay.updateStatus(message)
                 CaptionRuntimeStore.setError(message)
                 updateNotification(message)
                 stopSelf()
@@ -174,10 +200,9 @@ class CaptionCaptureService : Service() {
         projection: MediaProjection,
         modelFile: File,
         modelOption: com.jeremysu0818.caption.data.WhisperModelOption,
-        overlay: FloatingCaptionWindow,
+        translationChannel: Channel<TranslationRequest>,
     ) = coroutineScope {
         withContext(Dispatchers.Default) {
-            overlay.updateStatus("載入 Whisper 模型")
             CaptionRuntimeStore.updateStatus("載入 Whisper 模型")
             CaptionGraph.transcriber.ensureModelLoaded(modelFile)
         }
@@ -225,7 +250,6 @@ class CaptionCaptureService : Service() {
                         }
 
                         withContext(Dispatchers.Main.immediate) {
-                            overlay.updateStatus("Whisper 聆聽中...")
                             CaptionRuntimeStore.updateStatus("Whisper 聆聽中...")
                         }
                     }
@@ -267,7 +291,6 @@ class CaptionCaptureService : Service() {
 
                 try {
                     withContext(Dispatchers.Main.immediate) {
-                        overlay.updateStatus("Whisper 轉錄中")
                         CaptionRuntimeStore.updateStatus("Whisper 轉錄中")
                     }
 
@@ -287,31 +310,27 @@ class CaptionCaptureService : Service() {
 
                     if (sourceText.isBlank()) continue
 
-                    val translatedText = if (settings.translationEnabled) {
-                        withContext(Dispatchers.Main.immediate) {
-                            overlay.updateStatus("ML Kit 翻譯中")
-                            CaptionRuntimeStore.updateStatus("ML Kit 翻譯中")
-                        }
-                        CaptionGraph.translator.translate(
-                            text = sourceText,
-                            sourceLanguageTag = settings.sourceLanguageTag,
-                            targetLanguageTag = settings.targetLanguageTag,
-                        )
-                    } else {
-                        null
-                    }
-
+                    val lineId = UUID.randomUUID().toString()
+                    val doTranslate = settings.translationEnabled
                     withContext(Dispatchers.Main.immediate) {
-                        overlay.updateCaption(sourceText, translatedText)
-                        overlay.updateStatus("即時字幕執行中")
-                        CaptionRuntimeStore.updateCaption(sourceText, translatedText)
+                        CaptionRuntimeStore.commitSourceText(lineId, sourceText, isTranslating = doTranslate)
+                    }
+                    if (doTranslate) {
+                        enqueueTranslation(
+                            translationChannel = translationChannel,
+                            request = TranslationRequest(
+                                id = lineId,
+                                sourceText = sourceText,
+                                sourceLanguageTag = settings.sourceLanguageTag,
+                                targetLanguageTag = settings.targetLanguageTag,
+                            ),
+                        )
                     }
                 } catch (error: Throwable) {
                     if (error is CancellationException) throw error
                     Log.e(TAG, "Whisper batch inference failed", error)
                     val message = error.message ?: "Whisper 轉錄失敗。"
                     withContext(Dispatchers.Main.immediate) {
-                        overlay.updateStatus(message)
                         CaptionRuntimeStore.setError(message)
                     }
                 } finally {
@@ -335,7 +354,6 @@ class CaptionCaptureService : Service() {
     private suspend fun runWhisperCaptureLoop(
         projection: MediaProjection,
         modelFile: File,
-        overlay: FloatingCaptionWindow,
     ) = coroutineScope {
         val audioChunks = Channel<ShortArray>(
             capacity = 2,
@@ -355,7 +373,6 @@ class CaptionCaptureService : Service() {
                     val settings = CaptionGraph.preferences.settings.value
                     withContext(Dispatchers.Main.immediate) {
                         val status = "${settings.speechEngine.label} 轉錄中"
-                        overlay.updateStatus(status)
                         CaptionRuntimeStore.updateStatus(status)
                     }
 
@@ -376,30 +393,15 @@ class CaptionCaptureService : Service() {
                     }
                     if (sourceText.isBlank()) continue
 
-                    val translatedText = if (settings.translationEnabled) {
-                        withContext(Dispatchers.Main.immediate) {
-                            overlay.updateStatus("ML Kit 翻譯中")
-                            CaptionRuntimeStore.updateStatus("ML Kit 翻譯中")
-                        }
-                        CaptionGraph.translator.translate(
-                            text = sourceText,
-                            sourceLanguageTag = settings.sourceLanguageTag,
-                            targetLanguageTag = settings.targetLanguageTag,
-                        )
-                    } else {
-                        null
-                    }
-
+                    val lineId = UUID.randomUUID().toString()
+                    val doTranslate = settings.translationEnabled
                     withContext(Dispatchers.Main.immediate) {
-                        overlay.updateCaption(sourceText, translatedText)
-                        overlay.updateStatus("即時字幕執行中")
-                        CaptionRuntimeStore.updateCaption(sourceText, translatedText)
+                        CaptionRuntimeStore.commitSourceText(lineId, sourceText, isTranslating = doTranslate)
                     }
                 } catch (error: Throwable) {
                     if (error is CancellationException) throw error
                     val message = error.message ?: "字幕處理失敗。"
                     withContext(Dispatchers.Main.immediate) {
-                        overlay.updateStatus(message)
                         CaptionRuntimeStore.setError(message)
                     }
                 } finally {
@@ -422,7 +424,7 @@ class CaptionCaptureService : Service() {
 
     private suspend fun runMlKitStreamingCaptureLoop(
         projection: MediaProjection,
-        overlay: FloatingCaptionWindow,
+        translationChannel: Channel<TranslationRequest>,
     ) = coroutineScope {
         val audioChunks = Channel<ShortArray>(
             capacity = 16,
@@ -437,42 +439,44 @@ class CaptionCaptureService : Service() {
         }
         val recognitionJob = launch(Dispatchers.Default) {
             val initialSettings = CaptionGraph.preferences.settings.value
+            var currentLineId = UUID.randomUUID().toString()
+
             CaptionGraph.mlKitSpeechTranscriber.stream(
                 audioChunks = audioChunks,
                 languageTag = initialSettings.sourceLanguageTag,
                 engine = initialSettings.speechEngine,
                 onStatus = { status ->
                     withContext(Dispatchers.Main.immediate) {
-                        overlay.updateStatus(status)
                         CaptionRuntimeStore.updateStatus(status)
                     }
                 },
                 onPartialText = { partial ->
                     withContext(Dispatchers.Main.immediate) {
-                        overlay.updateCaption(partial, null)
-                        CaptionRuntimeStore.updateCaption(partial, null)
+                        CaptionRuntimeStore.addOrUpdatePartialSourceText(currentLineId, partial)
                     }
                 },
                 onFinalText = { sourceText ->
+                    if (sourceText.isBlank()) return@stream
                     val settings = CaptionGraph.preferences.settings.value
-                    val translatedText = if (settings.translationEnabled) {
-                        withContext(Dispatchers.Main.immediate) {
-                            overlay.updateStatus("ML Kit 翻譯中")
-                            CaptionRuntimeStore.updateStatus("ML Kit 翻譯中")
-                        }
-                        CaptionGraph.translator.translate(
-                            text = sourceText,
-                            sourceLanguageTag = settings.sourceLanguageTag,
-                            targetLanguageTag = settings.targetLanguageTag,
-                        )
-                    } else {
-                        null
-                    }
+                    val doTranslate = settings.translationEnabled
+                    val lineIdToCommit = currentLineId
+
                     withContext(Dispatchers.Main.immediate) {
-                        overlay.updateCaption(sourceText, translatedText)
-                        overlay.updateStatus("即時字幕執行中")
-                        CaptionRuntimeStore.updateCaption(sourceText, translatedText)
+                        CaptionRuntimeStore.commitSourceText(lineIdToCommit, sourceText, isTranslating = doTranslate)
                     }
+                    if (doTranslate) {
+                        enqueueTranslation(
+                            translationChannel = translationChannel,
+                            request = TranslationRequest(
+                                id = lineIdToCommit,
+                                sourceText = sourceText,
+                                sourceLanguageTag = settings.sourceLanguageTag,
+                                targetLanguageTag = settings.targetLanguageTag,
+                            ),
+                        )
+                    }
+                    // Prepare ID for the next utterance
+                    currentLineId = UUID.randomUUID().toString()
                 },
             )
         }
@@ -609,6 +613,16 @@ class CaptionCaptureService : Service() {
 
     private fun Float.asPercent(): String = "${(this * 100).toInt().coerceIn(0, 100)}%"
 
+    private suspend fun enqueueTranslation(
+        translationChannel: Channel<TranslationRequest>,
+        request: TranslationRequest,
+    ) {
+        if (translationChannel.trySend(request).isSuccess) return
+        withContext(Dispatchers.Main.immediate) {
+            CaptionRuntimeStore.updateTranslation(request.id, "翻譯失敗")
+        }
+    }
+
     private fun Iterable<ShortArray>.flattenShorts(sampleCount: Int): ShortArray {
         val output = ShortArray(sampleCount)
         var offset = 0
@@ -636,7 +650,7 @@ class CaptionCaptureService : Service() {
         when (this) {
             SpeechEngineOption.WHISPER -> 2_500
             SpeechEngineOption.MLKIT_BASIC,
-            SpeechEngineOption.MLKIT_ADVANCED -> 100
+            SpeechEngineOption.MLKIT_ADVANCED -> 200
         }
 
     /**

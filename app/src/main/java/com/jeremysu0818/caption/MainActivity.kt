@@ -424,11 +424,19 @@ private fun ControlCenterCard(
                 AnimatedContent(targetState = runtimeState.status, label = "status") { targetStatus ->
                     Text(targetStatus, style = MaterialTheme.typography.titleMedium)
                 }
-                AnimatedVisibility(visible = runtimeState.sourceText.isNotBlank()) {
-                    Text(runtimeState.sourceText, style = MaterialTheme.typography.bodyLarge)
+                val lastLine = runtimeState.lines.lastOrNull()
+                AnimatedVisibility(visible = lastLine != null && lastLine.sourceText.isNotBlank()) {
+                    Text(lastLine?.sourceText.orEmpty(), style = MaterialTheme.typography.bodyLarge)
                 }
-                AnimatedVisibility(visible = !runtimeState.translatedText.isNullOrBlank()) {
-                    Text(runtimeState.translatedText.orEmpty(), style = MaterialTheme.typography.bodyMedium)
+                AnimatedVisibility(
+                    visible = lastLine != null &&
+                        lastLine.isTranslating &&
+                        lastLine.translatedText.isNullOrBlank()
+                ) {
+                    Text("翻譯中...", style = MaterialTheme.typography.bodyMedium)
+                }
+                AnimatedVisibility(visible = lastLine != null && !lastLine.translatedText.isNullOrBlank()) {
+                    Text(lastLine?.translatedText.orEmpty(), style = MaterialTheme.typography.bodyMedium)
                 }
                 AnimatedVisibility(visible = runtimeState.errorMessage != null) {
                     Text(runtimeState.errorMessage.orEmpty(), color = MaterialTheme.colorScheme.error)

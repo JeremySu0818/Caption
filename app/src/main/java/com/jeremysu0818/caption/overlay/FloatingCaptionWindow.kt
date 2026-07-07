@@ -6,29 +6,54 @@ import android.graphics.PixelFormat
 import android.os.Handler
 import android.os.Looper
 import android.view.Gravity
-import android.view.MotionEvent
-import android.view.View
 import android.view.WindowManager
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleRegistry
 import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.LifecycleRegistry
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.setViewTreeLifecycleOwner
@@ -37,6 +62,7 @@ import androidx.savedstate.SavedStateRegistry
 import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
+import com.jeremysu0818.caption.data.CaptionRuntimeStore
 import com.jeremysu0818.caption.ui.theme.CaptionTheme
 import kotlin.math.roundToInt
 
@@ -70,10 +96,6 @@ class FloatingCaptionWindow(private val context: Context) {
     private var composeView: ComposeView? = null
     private var lifecycleOwner: OverlayLifecycleOwner? = null
 
-    private var statusText by mutableStateOf("準備字幕")
-    private var sourceTextState by mutableStateOf("")
-    private var translatedTextState by mutableStateOf<String?>(null)
-
     @SuppressLint("ClickableViewAccessibility")
     fun show() {
         mainHandler.post {
@@ -85,14 +107,14 @@ class FloatingCaptionWindow(private val context: Context) {
             val initialY = (context.resources.displayMetrics.heightPixels * 0.72f).roundToInt()
 
             val owner = OverlayLifecycleOwner().apply { init() }
-            
+
             val params = WindowManager.LayoutParams(
                 width,
                 WindowManager.LayoutParams.WRAP_CONTENT,
                 WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                    WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
-                    WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+                        WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
+                        WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
                 PixelFormat.TRANSLUCENT,
             ).apply {
                 gravity = Gravity.TOP or Gravity.START
@@ -105,43 +127,109 @@ class FloatingCaptionWindow(private val context: Context) {
                 setViewTreeViewModelStoreOwner(owner)
                 setViewTreeSavedStateRegistryOwner(owner)
                 setContent {
+                    val state by CaptionRuntimeStore.state.collectAsState()
                     CaptionTheme {
-                        Surface(
-                            modifier = Modifier.pointerInput(Unit) {
-                                detectDragGestures { change, dragAmount ->
-                                    change.consume()
-                                    params.x += dragAmount.x.roundToInt()
-                                    params.y += dragAmount.y.roundToInt()
-                                    windowManager.updateViewLayout(this@apply, params)
+                        var isExpanded by remember { mutableStateOf(false) }
+                        val screenHeight = androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp.dp
+                        val targetMaxHeight = if (isExpanded) screenHeight * 0.6f else screenHeight / 8f
+                        val maxHeight by animateDpAsState(targetValue = targetMaxHeight, label = "maxHeight")
+
+                        Column(
+                            modifier = Modifier
+                                .height(maxHeight)
+                                .pointerInput(Unit) {
+                                    detectDragGestures { change, dragAmount ->
+                                        change.consume()
+                                        params.x += dragAmount.x.roundToInt()
+                                        params.y += dragAmount.y.roundToInt()
+                                        windowManager.updateViewLayout(this@apply, params)
+                                    }
                                 }
-                            },
-                            shape = RoundedCornerShape(20.dp),
-                            color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.94f),
-                            contentColor = MaterialTheme.colorScheme.onSurface,
                         ) {
-                            Column(
-                                modifier = Modifier.padding(horizontal = 18.dp, vertical = 14.dp)
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable(
+                                        interactionSource = remember { MutableInteractionSource() },
+                                        indication = null
+                                    ) { isExpanded = !isExpanded }
+                                    .padding(top = 4.dp, bottom = 4.dp),
+                                contentAlignment = Alignment.Center
                             ) {
-                                Text(
-                                    text = statusText,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    style = MaterialTheme.typography.labelSmall
+                                Box(
+                                    modifier = Modifier
+                                        .size(32.dp, 4.dp)
+                                        .background(
+                                            color = Color.White.copy(alpha = 0.6f),
+                                            shape = RoundedCornerShape(2.dp)
+                                        )
                                 )
-                                if (sourceTextState.isNotBlank()) {
-                                    Text(
-                                        text = sourceTextState,
-                                        style = MaterialTheme.typography.titleLarge,
-                                        fontWeight = FontWeight.Bold,
-                                        maxLines = 4
-                                    )
+                            }
+
+                            Surface(
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(20.dp),
+                                color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.94f),
+                                contentColor = MaterialTheme.colorScheme.onSurface,
+                            ) {
+                                val listState = rememberLazyListState()
+                                val linesCount = state.lines.size
+
+                                LaunchedEffect(linesCount) {
+                                    if (linesCount > 0) {
+                                        listState.animateScrollToItem(0)
+                                    }
                                 }
-                                translatedTextState?.takeIf { it.isNotBlank() }?.let { translated ->
-                                    Text(
-                                        text = translated,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        maxLines = 4
-                                    )
+
+                                LazyColumn(
+                                    state = listState,
+                                    reverseLayout = true,
+                                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                                    contentPadding = PaddingValues(top = 16.dp, bottom = 16.dp),
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .graphicsLayer { alpha = 0.99f }
+                                        .drawWithContent {
+                                            drawContent()
+                                            val fadeOutHeight = 16.dp(density).toFloat()
+                                            val topStop = (fadeOutHeight / size.height).coerceIn(0f, 0.5f)
+                                            val bottomStop = ((size.height - fadeOutHeight) / size.height).coerceIn(0.5f, 1f)
+                                            val gradient = Brush.verticalGradient(
+                                                0f to Color.Transparent,
+                                                topStop to Color.Black,
+                                                bottomStop to Color.Black,
+                                                1f to Color.Transparent,
+                                                startY = 0f,
+                                                endY = size.height
+                                            )
+                                            drawRect(brush = gradient, blendMode = BlendMode.DstIn)
+                                        }
+                                        .padding(horizontal = 18.dp)
+                                ) {
+                                    items(state.lines.reversed(), key = { line -> line.id }) { line ->
+                                        Column(
+                                            modifier = Modifier.animateContentSize()
+                                        ) {
+                                            TypewriterText(
+                                                text = line.sourceText,
+                                                style = MaterialTheme.typography.titleLarge,
+                                                fontWeight = FontWeight.Bold,
+                                            )
+                                            if (line.isTranslating && line.translatedText == null) {
+                                                Text(
+                                                    text = "...",
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                                    style = MaterialTheme.typography.bodyLarge,
+                                                )
+                                            } else if (line.translatedText != null && line.translatedText.isNotBlank()) {
+                                                TypewriterText(
+                                                    text = line.translatedText,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    style = MaterialTheme.typography.bodyLarge,
+                                                )
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -155,19 +243,6 @@ class FloatingCaptionWindow(private val context: Context) {
         }
     }
 
-    fun updateStatus(status: String) {
-        mainHandler.post {
-            statusText = status
-        }
-    }
-
-    fun updateCaption(sourceText: String, translatedText: String?) {
-        mainHandler.post {
-            sourceTextState = sourceText
-            translatedTextState = translatedText
-        }
-    }
-
     fun dismiss() {
         mainHandler.post {
             composeView?.let { windowManager.removeView(it) }
@@ -177,5 +252,63 @@ class FloatingCaptionWindow(private val context: Context) {
         }
     }
 
+    @Deprecated("No longer used, UI reacts to CaptionRuntimeStore directly")
+    fun updateStatus(status: String) {}
+
+    @Deprecated("No longer used, UI reacts to CaptionRuntimeStore directly")
+    fun updateCaption(sourceText: String, translatedText: String?) {}
+
     private fun Int.dp(density: Float): Int = (this * density).roundToInt()
+}
+
+@Composable
+private fun TypewriterText(
+    text: String,
+    modifier: Modifier = Modifier,
+    color: Color = Color.Unspecified,
+    style: androidx.compose.ui.text.TextStyle = androidx.compose.material3.LocalTextStyle.current,
+    fontWeight: FontWeight? = null,
+) {
+    var displayedText by remember { mutableStateOf("") }
+
+    LaunchedEffect(text) {
+        var commonPrefixLength = 0
+        while (commonPrefixLength < displayedText.length &&
+            commonPrefixLength < text.length &&
+            displayedText[commonPrefixLength] == text[commonPrefixLength]
+        ) {
+            commonPrefixLength++
+        }
+
+        if (displayedText.length > commonPrefixLength) {
+            displayedText = displayedText.substring(0, commonPrefixLength)
+        }
+
+        val charsToType = text.length - displayedText.length
+        if (charsToType > 0) {
+            val totalDuration = charsToType.toLong() * 20L
+            val durationMs = totalDuration.coerceIn(200L, 800L)
+            val frameDelay = 16L
+            val totalFrames = (durationMs / frameDelay).coerceAtLeast(1)
+            val charsPerFrame = (charsToType.toFloat() / totalFrames).coerceAtLeast(1f)
+
+            var currentLength = displayedText.length.toFloat()
+            while (currentLength < text.length) {
+                kotlinx.coroutines.delay(frameDelay)
+                currentLength += charsPerFrame
+                val nextLength = currentLength.toInt().coerceAtMost(text.length)
+                if (nextLength > displayedText.length) {
+                    displayedText = text.substring(0, nextLength)
+                }
+            }
+        }
+    }
+
+    Text(
+        text = displayedText,
+        modifier = modifier,
+        color = color,
+        style = style,
+        fontWeight = fontWeight
+    )
 }
