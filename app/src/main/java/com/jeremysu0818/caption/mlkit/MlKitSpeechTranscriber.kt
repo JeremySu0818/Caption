@@ -10,6 +10,7 @@ import com.google.mlkit.genai.speechrecognition.SpeechRecognizerOptions
 import com.google.mlkit.genai.speechrecognition.SpeechRecognizerResponse
 import com.google.mlkit.genai.speechrecognition.speechRecognizerOptions
 import com.google.mlkit.genai.speechrecognition.speechRecognizerRequest
+import com.jeremysu0818.caption.data.CaptionLanguages
 import com.jeremysu0818.caption.audio.SystemAudioCapture
 import com.jeremysu0818.caption.data.SpeechEngineOption
 import java.io.FileOutputStream
@@ -41,7 +42,9 @@ class MlKitSpeechTranscriber {
         onStatus: suspend (String) -> Unit,
         onPartialText: suspend (String) -> Unit,
     ): String = mutex.withLock {
-        val locale = Locale.forLanguageTag(languageTag.toMlKitLocaleTag())
+        val locale = Locale.forLanguageTag(
+            CaptionLanguages.requireMlKitSpeechLocale(languageTag, engine)
+        )
         val mode = when (engine) {
             SpeechEngineOption.MLKIT_ADVANCED -> SpeechRecognizerOptions.Mode.MODE_ADVANCED
             else -> SpeechRecognizerOptions.Mode.MODE_BASIC
@@ -59,7 +62,9 @@ class MlKitSpeechTranscriber {
         onPartialText: suspend (String) -> Unit,
         onFinalText: suspend (String) -> Unit,
     ) = mutex.withLock {
-        val locale = Locale.forLanguageTag(languageTag.toMlKitLocaleTag())
+        val locale = Locale.forLanguageTag(
+            CaptionLanguages.requireMlKitSpeechLocale(languageTag, engine)
+        )
         val mode = when (engine) {
             SpeechEngineOption.MLKIT_ADVANCED -> SpeechRecognizerOptions.Mode.MODE_ADVANCED
             else -> SpeechRecognizerOptions.Mode.MODE_BASIC
@@ -96,7 +101,8 @@ class MlKitSpeechTranscriber {
         languageTag: String,
         engine: SpeechEngineOption,
     ): Boolean {
-        val locale = Locale.forLanguageTag(languageTag.toMlKitLocaleTag())
+        val localeTag = CaptionLanguages.mlKitSpeechLocale(languageTag, engine) ?: return false
+        val locale = Locale.forLanguageTag(localeTag)
         val mode = when (engine) {
             SpeechEngineOption.MLKIT_ADVANCED -> SpeechRecognizerOptions.Mode.MODE_ADVANCED
             else -> SpeechRecognizerOptions.Mode.MODE_BASIC
@@ -253,24 +259,6 @@ class MlKitSpeechTranscriber {
         }
         return bytes
     }
-
-    private fun String.toMlKitLocaleTag(): String =
-        when (this) {
-            "en" -> "en-US"
-            "zh" -> "cmn-Hant-TW"
-            "ja" -> "ja-JP"
-            "ko" -> "ko-KR"
-            "de" -> "de-DE"
-            "es" -> "es-ES"
-            "fr" -> "fr-FR"
-            "it" -> "it-IT"
-            "pt" -> "pt-BR"
-            "ru" -> "ru-RU"
-            "th" -> "th-TH"
-            "vi" -> "vi-VN"
-            "id" -> "id-ID"
-            else -> this
-        }
 
     companion object {
         private const val RECOGNITION_DRAIN_MS = 250L

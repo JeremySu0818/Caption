@@ -74,6 +74,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.jeremysu0818.caption.data.CaptionLanguage
 import com.jeremysu0818.caption.data.CaptionLanguages
 import com.jeremysu0818.caption.data.CaptionRuntimeState
 import com.jeremysu0818.caption.data.CaptionSettings
@@ -805,10 +806,14 @@ private fun TranslationSection(
                 .animateContentSize(),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            val sourceLanguages = remember(settings.speechEngine, settings.translationEnabled) {
+                CaptionLanguages.getFilteredLanguages(settings.speechEngine, settings.translationEnabled)
+            }
             LanguageDropdown(
                 modifier = Modifier.weight(1f),
                 label = "來源",
                 selectedTag = settings.sourceLanguageTag,
+                languages = sourceLanguages,
                 onSelected = onSourceChanged,
             )
             Crossfade(
@@ -817,10 +822,14 @@ private fun TranslationSection(
                 label = "target_language"
             ) { enabled ->
                 if (enabled) {
+                    val targetLanguages = remember {
+                        CaptionLanguages.targetLanguages()
+                    }
                     LanguageDropdown(
                         modifier = Modifier.fillMaxWidth(),
                         label = "目標",
                         selectedTag = settings.targetLanguageTag,
+                        languages = targetLanguages,
                         onSelected = onTargetChanged,
                     )
                 } else {
@@ -846,6 +855,7 @@ private fun LanguageDropdown(
     modifier: Modifier = Modifier,
     label: String,
     selectedTag: String,
+    languages: List<CaptionLanguage>,
     onSelected: (String) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -859,7 +869,7 @@ private fun LanguageDropdown(
             Text(CaptionLanguages.labelFor(selectedTag))
         }
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            CaptionLanguages.supported.forEach { language ->
+            languages.forEach { language ->
                 DropdownMenuItem(
                     text = { Text(language.label) },
                     onClick = {

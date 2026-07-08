@@ -6,6 +6,7 @@ import com.google.mlkit.nl.translate.TranslateLanguage
 import com.google.mlkit.nl.translate.Translation
 import com.google.mlkit.nl.translate.Translator
 import com.google.mlkit.nl.translate.TranslatorOptions
+import com.jeremysu0818.caption.data.CaptionLanguages
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -19,11 +20,14 @@ class CaptionTranslator {
 
     suspend fun translate(text: String, sourceLanguageTag: String, targetLanguageTag: String): String =
         mutex.withLock {
-            if (sourceLanguageTag == targetLanguageTag) return@withLock text
-            val sourceLanguage = TranslateLanguage.fromLanguageTag(sourceLanguageTag)
-                ?: throw IllegalArgumentException("ML Kit 不支援來源語言：$sourceLanguageTag")
-            val targetLanguage = TranslateLanguage.fromLanguageTag(targetLanguageTag)
-                ?: throw IllegalArgumentException("ML Kit 不支援目標語言：$targetLanguageTag")
+            val safeSource = CaptionLanguages.requireMlKitTranslateTag(sourceLanguageTag)
+            val safeTarget = CaptionLanguages.requireMlKitTranslateTag(targetLanguageTag)
+            if (safeSource == safeTarget) return@withLock text
+
+            val sourceLanguage = TranslateLanguage.fromLanguageTag(safeSource)
+                ?: throw IllegalArgumentException("ML Kit 不支援來源語言：$sourceLanguageTag ($safeSource)")
+            val targetLanguage = TranslateLanguage.fromLanguageTag(safeTarget)
+                ?: throw IllegalArgumentException("ML Kit 不支援目標語言：$targetLanguageTag ($safeTarget)")
             val client = translatorFor(sourceLanguage, targetLanguage)
             client.downloadModelIfNeeded(DownloadConditions.Builder().build()).awaitTask()
             client.translate(text).awaitTask().trim()

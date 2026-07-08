@@ -2,6 +2,7 @@ package com.jeremysu0818.caption.whisper
 
 import android.content.Context
 import android.util.Log
+import com.jeremysu0818.caption.data.CaptionLanguages
 import dev.ffmpegkit.whisper.Whisper
 import dev.ffmpegkit.whisper.WhisperConfig
 import dev.ffmpegkit.whisper.WhisperModel
@@ -26,11 +27,16 @@ class WhisperTranscriber(private val context: Context) {
     suspend fun transcribe(wavFile: File, modelFile: File, languageTag: String): String =
         mutex.withLock {
             val model = loadModel(modelFile)
+            val safeLanguageTag = when {
+                languageTag.isBlank() || languageTag == "auto" -> "auto"
+                else -> CaptionLanguages.requireWhisperLanguageTag(languageTag)
+            }
+
             val result = Whisper.transcribe(
                 model = model,
                 audioPath = wavFile.absolutePath,
                 config = WhisperConfig(
-                    language = languageTag.ifBlank { "auto" },
+                    language = safeLanguageTag.ifBlank { "auto" },
                     translate = false,
                     threads = preferredThreadCount(),
                     maxSegmentLength = 0,

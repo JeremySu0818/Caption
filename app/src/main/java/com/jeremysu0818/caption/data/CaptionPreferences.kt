@@ -34,7 +34,7 @@ class CaptionPreferences(context: Context) {
     }
 
     private fun update(transform: (CaptionSettings) -> CaptionSettings) {
-        val next = transform(_settings.value)
+        val next = normalize(transform(_settings.value))
         prefs.edit {
             putString(KEY_MODEL, next.model.id)
             putString(KEY_SPEECH_ENGINE, next.speechEngine.id)
@@ -46,12 +46,24 @@ class CaptionPreferences(context: Context) {
     }
 
     private fun readSettings(): CaptionSettings =
-        CaptionSettings(
-            speechEngine = SpeechEngineOption.fromId(prefs.getString(KEY_SPEECH_ENGINE, null)),
-            model = WhisperModelOption.fromId(prefs.getString(KEY_MODEL, null)),
-            translationEnabled = prefs.getBoolean(KEY_TRANSLATION_ENABLED, false),
-            sourceLanguageTag = prefs.getString(KEY_SOURCE_LANGUAGE, "en") ?: "en",
-            targetLanguageTag = prefs.getString(KEY_TARGET_LANGUAGE, "zh") ?: "zh",
+        normalize(
+            CaptionSettings(
+                speechEngine = SpeechEngineOption.fromId(prefs.getString(KEY_SPEECH_ENGINE, null)),
+                model = WhisperModelOption.fromId(prefs.getString(KEY_MODEL, null)),
+                translationEnabled = prefs.getBoolean(KEY_TRANSLATION_ENABLED, false),
+                sourceLanguageTag = prefs.getString(KEY_SOURCE_LANGUAGE, "en") ?: "en",
+                targetLanguageTag = prefs.getString(KEY_TARGET_LANGUAGE, "zh") ?: "zh",
+            )
+        )
+
+    private fun normalize(settings: CaptionSettings): CaptionSettings =
+        settings.copy(
+            sourceLanguageTag = CaptionLanguages.coerceSourceTag(
+                tag = settings.sourceLanguageTag,
+                engine = settings.speechEngine,
+                translationEnabled = settings.translationEnabled,
+            ),
+            targetLanguageTag = CaptionLanguages.coerceTargetTag(settings.targetLanguageTag),
         )
 
     companion object {
