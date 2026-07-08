@@ -28,6 +28,7 @@ import com.jeremysu0818.caption.audio.VoiceActivityDetector
 import com.jeremysu0818.caption.audio.WavFileWriter
 import com.jeremysu0818.caption.data.CaptionRuntimeStore
 import com.jeremysu0818.caption.data.SpeechEngineOption
+import com.jeremysu0818.caption.data.I18n
 import com.jeremysu0818.caption.overlay.FloatingCaptionWindow
 import com.jeremysu0818.caption.tile.CaptionTileService
 import java.io.File
@@ -79,11 +80,11 @@ class CaptionCaptureService : Service() {
                 val resultCode = intent.getIntExtra(EXTRA_RESULT_CODE, Int.MIN_VALUE)
                 val resultData = intent.projectionResultData()
                 if (resultCode == Int.MIN_VALUE || resultData == null) {
-                    CaptionRuntimeStore.setError("缺少 MediaProjection 授權結果。")
+                    CaptionRuntimeStore.setError(I18n.getString("error_missing_projection"))
                     stopSelf()
                     return START_NOT_STICKY
                 }
-                startForegroundForProjection("準備即時字幕")
+                startForegroundForProjection(I18n.getString("status_preparing"))
                 startSession(resultCode, resultData)
             }
         }
@@ -91,7 +92,7 @@ class CaptionCaptureService : Service() {
     }
 
     override fun onDestroy() {
-        stopSession("已停止", stopProjection = true, removeForeground = true)
+        stopSession(I18n.getString("status_stopped"), stopProjection = true, removeForeground = true)
         CoroutineScope(Dispatchers.Default).launch {
             CaptionGraph.transcriber.release()
             CaptionGraph.translator.close()
@@ -104,13 +105,13 @@ class CaptionCaptureService : Service() {
     }
 
     private fun startSession(resultCode: Int, resultData: Intent) {
-        stopSession("重新啟動", stopProjection = true, removeForeground = false)
+        stopSession(I18n.getString("status_restarting"), stopProjection = true, removeForeground = false)
         isRunning = true
         CaptionTileService.requestTileRefresh(this)
 
         val overlay = FloatingCaptionWindow(this).also { it.show() }
         overlayWindow = overlay
-        CaptionRuntimeStore.setRunning("準備即時字幕")
+        CaptionRuntimeStore.setRunning(I18n.getString("status_preparing"))
 
         sessionJob = serviceScope.launch {
             try {
@@ -129,7 +130,7 @@ class CaptionCaptureService : Service() {
                         }
                     }
 
-                    CaptionRuntimeStore.updateStatus("確認 Whisper 模型")
+                    CaptionRuntimeStore.updateStatus(I18n.getString("status_checking_whisper"))
                     CaptionGraph.modelRepository.ensureModel(modelOption).also {
                         downloadStatusJob.cancel()
                     }
@@ -137,8 +138,8 @@ class CaptionCaptureService : Service() {
                     null
                 }
 
-                CaptionRuntimeStore.updateStatus("擷取系統音訊")
-                updateNotification("擷取系統音訊")
+                CaptionRuntimeStore.updateStatus(I18n.getString("status_capturing_audio"))
+                updateNotification(I18n.getString("status_capturing_audio"))
                 val translationChannel = Channel<TranslationRequest>(Channel.UNLIMITED)
                 val translationJob = launch(Dispatchers.Default) {
                     for (line in translationChannel) {
@@ -155,7 +156,7 @@ class CaptionCaptureService : Service() {
                             if (e is CancellationException) throw e
                             Log.e(TAG, "Translation failed", e)
                             withContext(Dispatchers.Main.immediate) {
-                                CaptionRuntimeStore.updateTranslation(line.id, "翻譯失敗")
+                                CaptionRuntimeStore.updateTranslation(line.id, I18n.getString("translation_failed"))
                             }
                         }
                     }
@@ -181,7 +182,7 @@ class CaptionCaptureService : Service() {
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (error: Throwable) {
-                val message = error.message ?: "即時字幕服務失敗。"
+                val message = error.message ?: I18n.getString("status_service_failed")
                 CaptionRuntimeStore.setError(message)
                 updateNotification(message)
                 stopSelf()
@@ -200,7 +201,7 @@ class CaptionCaptureService : Service() {
         translationChannel: Channel<TranslationRequest>,
     ) = coroutineScope {
         withContext(Dispatchers.Default) {
-            CaptionRuntimeStore.updateStatus("載入 Whisper 模型")
+            CaptionRuntimeStore.updateStatus(I18n.getString("status_loading_whisper"))
             CaptionGraph.transcriber.ensureModelLoaded(modelFile)
         }
 
@@ -247,7 +248,7 @@ class CaptionCaptureService : Service() {
                         }
 
                         withContext(Dispatchers.Main.immediate) {
-                            CaptionRuntimeStore.updateStatus("Whisper 聆聽中...")
+                            CaptionRuntimeStore.updateStatus(I18n.getString("status_whisper_listening"))
                         }
                     }
 
@@ -288,7 +289,7 @@ class CaptionCaptureService : Service() {
 
                 try {
                     withContext(Dispatchers.Main.immediate) {
-                        CaptionRuntimeStore.updateStatus("Whisper 轉錄中")
+                        CaptionRuntimeStore.updateStatus(I18n.getString("status_whisper_transcribing"))
                     }
 
                     InMemoryWavWriter.write(wavFile, samples)
@@ -326,7 +327,7 @@ class CaptionCaptureService : Service() {
                 } catch (error: Throwable) {
                     if (error is CancellationException) throw error
                     Log.e(TAG, "Whisper batch inference failed", error)
-                    val message = error.message ?: "Whisper 轉錄失敗。"
+                    val message = error.message ?: I18n.getString("whisper_failed")
                     withContext(Dispatchers.Main.immediate) {
                         CaptionRuntimeStore.setError(message)
                     }
@@ -369,7 +370,7 @@ class CaptionCaptureService : Service() {
                     WavFileWriter.writePcm16Mono(chunkFile, samples)
                     val settings = CaptionGraph.preferences.settings.value
                     withContext(Dispatchers.Main.immediate) {
-                        val status = "${settings.speechEngine.label} 轉錄中"
+                        val status = I18n.getString("engine_transcribing", settings.speechEngine.label)
                         CaptionRuntimeStore.updateStatus(status)
                     }
 
@@ -397,7 +398,7 @@ class CaptionCaptureService : Service() {
                     }
                 } catch (error: Throwable) {
                     if (error is CancellationException) throw error
-                    val message = error.message ?: "字幕處理失敗。"
+                    val message = error.message ?: I18n.getString("caption_failed")
                     withContext(Dispatchers.Main.immediate) {
                         CaptionRuntimeStore.setError(message)
                     }
@@ -493,7 +494,7 @@ class CaptionCaptureService : Service() {
     private fun createMediaProjection(resultCode: Int, resultData: Intent): MediaProjection {
         val manager = getSystemService(MediaProjectionManager::class.java)
         val projection = manager.getMediaProjection(resultCode, resultData)
-            ?: throw IllegalStateException("無法取得 MediaProjection token。")
+            ?: throw IllegalStateException(I18n.getString("error_projection_token"))
         val callback = object : MediaProjection.Callback() {
             override fun onStop() {
                 mainHandler.post {
@@ -511,10 +512,10 @@ class CaptionCaptureService : Service() {
 
     private fun verifyRuntimeRequirements() {
         if (!Settings.canDrawOverlays(this)) {
-            throw SecurityException("尚未允許覆蓋其他應用程式。")
+            throw SecurityException(I18n.getString("error_no_overlay"))
         }
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-            throw SecurityException("尚未允許錄音權限。")
+            throw SecurityException(I18n.getString("error_no_record"))
         }
     }
 
@@ -616,7 +617,7 @@ class CaptionCaptureService : Service() {
     ) {
         if (translationChannel.trySend(request).isSuccess) return
         withContext(Dispatchers.Main.immediate) {
-            CaptionRuntimeStore.updateTranslation(request.id, "翻譯失敗")
+            CaptionRuntimeStore.updateTranslation(request.id, I18n.getString("translation_failed"))
         }
     }
 

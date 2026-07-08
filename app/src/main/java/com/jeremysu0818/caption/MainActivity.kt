@@ -31,6 +31,7 @@ import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -38,6 +39,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.verticalScroll
@@ -80,6 +82,8 @@ import com.jeremysu0818.caption.data.CaptionRuntimeState
 import com.jeremysu0818.caption.data.CaptionSettings
 import com.jeremysu0818.caption.data.SpeechEngineOption
 import com.jeremysu0818.caption.data.WhisperModelOption
+import com.jeremysu0818.caption.data.I18n
+import com.jeremysu0818.caption.data.t
 import com.jeremysu0818.caption.service.CaptionCaptureService
 import com.jeremysu0818.caption.ui.theme.CaptionTheme
 import com.jeremysu0818.caption.whisper.ModelDownloadState
@@ -154,7 +158,7 @@ private fun CaptionApp(
         if (result.resultCode == Activity.RESULT_OK && result.data != null) {
             CaptionCaptureService.start(context, result.resultCode, result.data!!)
         } else {
-            CaptionGraph.runtimeStore.setStopped("MediaProjection 授權已取消")
+            CaptionGraph.runtimeStore.setStopped(I18n.getString("error_projection_cancelled"))
         }
     }
 
@@ -169,7 +173,7 @@ private fun CaptionApp(
     ) { granted ->
         if (!granted) {
             pendingStart = false
-            CaptionGraph.runtimeStore.setError("尚未允許錄音權限。")
+            CaptionGraph.runtimeStore.setError(I18n.getString("error_no_record"))
         }
         permissionRefresh++
     }
@@ -179,7 +183,7 @@ private fun CaptionApp(
     ) { granted ->
         if (!granted) {
             pendingStart = false
-            CaptionGraph.runtimeStore.setError("尚未允許通知權限。")
+            CaptionGraph.runtimeStore.setError(I18n.getString("error_no_notification"))
         }
         permissionRefresh++
     }
@@ -320,7 +324,7 @@ private fun CaptionApp(
 
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
-                    text = "設定",
+                    text = t("settings"),
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(start = 4.dp)
@@ -335,7 +339,7 @@ private fun CaptionApp(
                             onUnsupportedAdvancedSelected = {
                                 Toast.makeText(
                                     context,
-                                    "當前設備不支援 ML Kit Advanced",
+                                    I18n.getString("mlkit_advanced_unsupported"),
                                     Toast.LENGTH_SHORT,
                                 ).show()
                             },
@@ -382,6 +386,13 @@ private fun CaptionApp(
                             onSourceChanged = CaptionGraph.preferences::updateSourceLanguage,
                             onTargetChanged = CaptionGraph.preferences::updateTargetLanguage,
                         )
+
+                        HorizontalDivider(modifier = Modifier.padding(horizontal = 18.dp), color = MaterialTheme.colorScheme.surfaceVariant)
+
+                        UiLanguageSection(
+                            settings = settings,
+                            onLanguageSelected = CaptionGraph.preferences::updateUiLanguage,
+                        )
                     }
                 }
             }
@@ -415,24 +426,27 @@ private fun ControlCenterCard(
                     onClick = onStart,
                     enabled = !isRunning,
                 ) {
-                    Text(if (canStart) "啟動字幕" else "檢查授權")
+                    Text(if (canStart) t("start_caption") else t("check_permission"))
                 }
                 OutlinedButton(
                     modifier = Modifier.weight(1f),
                     onClick = onStop,
                     enabled = isRunning,
                 ) {
-                    Text("停止")
+                    Text(t("stop"))
                 }
             }
 
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("狀態", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                Text(t("status"), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
                 AnimatedContent(
                     targetState = runtimeState.status,
                     label = "status",
                     transitionSpec = {
-                        if (targetState.startsWith("模型下載中") || initialState.startsWith("模型下載中")) {
+                        val downloadingPrefix = I18n.getString("model_downloading_status").substringBefore("{").trim()
+                        val isDownloading = (downloadingPrefix.isNotEmpty() && (targetState.startsWith(downloadingPrefix) || initialState.startsWith(downloadingPrefix))) ||
+                            targetState.startsWith("模型下載中") || initialState.startsWith("模型下載中")
+                        if (isDownloading) {
                             ContentTransform(
                                 targetContentEnter = EnterTransition.None,
                                 initialContentExit = ExitTransition.None
@@ -444,7 +458,7 @@ private fun ControlCenterCard(
                         }
                     }
                 ) { targetStatus ->
-                    Text(targetStatus, style = MaterialTheme.typography.titleMedium)
+                    Text(t(targetStatus), style = MaterialTheme.typography.titleMedium)
                 }
                 val lastLine = runtimeState.lines.lastOrNull()
                 AnimatedVisibility(visible = lastLine != null && lastLine.sourceText.isNotBlank()) {
@@ -455,13 +469,13 @@ private fun ControlCenterCard(
                         lastLine.isTranslating &&
                         lastLine.translatedText.isNullOrBlank()
                 ) {
-                    Text("翻譯中...", style = MaterialTheme.typography.bodyMedium)
+                    Text(t("translating"), style = MaterialTheme.typography.bodyMedium)
                 }
                 AnimatedVisibility(visible = lastLine != null && !lastLine.translatedText.isNullOrBlank()) {
                     Text(lastLine?.translatedText.orEmpty(), style = MaterialTheme.typography.bodyMedium)
                 }
                 AnimatedVisibility(visible = runtimeState.errorMessage != null) {
-                    Text(runtimeState.errorMessage.orEmpty(), color = MaterialTheme.colorScheme.error)
+                    Text(t(runtimeState.errorMessage.orEmpty()), color = MaterialTheme.colorScheme.error)
                 }
             }
         }
@@ -490,27 +504,27 @@ private fun PermissionAlertCard(
                 .animateContentSize(),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text("需要授權", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Text("為確保字幕視窗與語音辨識正常運作，請允許以下權限：", style = MaterialTheme.typography.bodyMedium)
+            Text(t("permission_required"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(t("permission_reason"), style = MaterialTheme.typography.bodyMedium)
             
             if (!overlayGranted) {
                 PermissionRow(
-                    label = "覆蓋其他應用程式",
-                    actionText = "開啟設定",
+                    label = t("permission_overlay"),
+                    actionText = t("open_settings"),
                     onAction = onOpenOverlaySettings,
                 )
             }
             if (!recordGranted) {
                 PermissionRow(
-                    label = "系統音訊擷取",
-                    actionText = "允許",
+                    label = t("permission_record"),
+                    actionText = t("allow"),
                     onAction = onRequestRecord,
                 )
             }
             if (!notificationGranted && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 PermissionRow(
-                    label = "前景服務通知",
-                    actionText = "允許",
+                    label = t("permission_notification"),
+                    actionText = t("allow"),
                     onAction = onRequestNotifications,
                 )
             }
@@ -547,7 +561,7 @@ private fun SpeechEngineSection(
         modifier = Modifier.fillMaxWidth().padding(18.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text("辨識引擎", style = MaterialTheme.typography.titleMedium)
+        Text(t("speech_engine"), style = MaterialTheme.typography.titleMedium)
         SpeechEngineOption.entries.forEach { option ->
             val isAdvancedOption = option == SpeechEngineOption.MLKIT_ADVANCED
             val isOptionEnabled = !isAdvancedOption || isMlKitAdvancedAvailable
@@ -571,9 +585,9 @@ private fun SpeechEngineSection(
         ) { engine ->
             Text(
                 text = when (engine) {
-                    SpeechEngineOption.WHISPER -> "使用 whisper.cpp；偵測到一句話結束後整句轉錄，約延遲 3-5 秒。"
-                    SpeechEngineOption.MLKIT_BASIC -> "使用 ML Kit Basic，多數 Android 12+ 裝置可用。"
-                    SpeechEngineOption.MLKIT_ADVANCED -> "使用 ML Kit Advanced，需支援 AICore/Gemini Nano 的裝置。"
+                    SpeechEngineOption.WHISPER -> t("engine_whisper_desc")
+                    SpeechEngineOption.MLKIT_BASIC -> t("engine_mlkit_basic_desc")
+                    SpeechEngineOption.MLKIT_ADVANCED -> t("engine_mlkit_advanced_desc")
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -598,10 +612,10 @@ private fun WhisperModelSection(
         AlertDialog(
             onDismissRequest = { showCancelConfirmation = false },
             title = {
-                Text(text = "確認取消下載")
+                Text(text = t("cancel_download_title"))
             },
             text = {
-                Text(text = "確定要取消下載 ${settings.model.displayName} 嗎？目前的下載進度將會遺失。")
+                Text(text = t("cancel_download_message", settings.model.displayName))
             },
             confirmButton = {
                 TextButton(
@@ -613,14 +627,14 @@ private fun WhisperModelSection(
                         contentColor = MaterialTheme.colorScheme.error
                     )
                 ) {
-                    Text("確認取消")
+                    Text(t("confirm_cancel"))
                 }
             },
             dismissButton = {
                 TextButton(
                     onClick = { showCancelConfirmation = false }
                 ) {
-                    Text("返回")
+                    Text(t("back"))
                 }
             }
         )
@@ -630,10 +644,10 @@ private fun WhisperModelSection(
         AlertDialog(
             onDismissRequest = { showDeleteConfirmation = false },
             title = {
-                Text(text = "確認刪除模型")
+                Text(text = t("delete_model_title"))
             },
             text = {
-                Text(text = "確定要刪除 ${settings.model.displayName} 嗎？此操作將會移除已下載的模型檔案，之後需要重新下載才能使用。")
+                Text(text = t("delete_model_message", settings.model.displayName))
             },
             confirmButton = {
                 TextButton(
@@ -645,14 +659,14 @@ private fun WhisperModelSection(
                         contentColor = MaterialTheme.colorScheme.error
                     )
                 ) {
-                    Text("確認刪除")
+                    Text(t("confirm_delete"))
                 }
             },
             dismissButton = {
                 TextButton(
                     onClick = { showDeleteConfirmation = false }
                 ) {
-                    Text("取消")
+                    Text(t("cancel"))
                 }
             }
         )
@@ -668,7 +682,7 @@ private fun WhisperModelSection(
         modifier = Modifier.fillMaxWidth().padding(18.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text("Whisper 模型", style = MaterialTheme.typography.titleMedium)
+        Text(t("whisper_model"), style = MaterialTheme.typography.titleMedium)
         WhisperModelOption.entries.chunked(2).forEach { rowModels ->
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -691,10 +705,10 @@ private fun WhisperModelSection(
         }
         Text(
             text = when {
-                selectedDownloadState.isDownloaded -> "模型已下載"
+                selectedDownloadState.isDownloaded -> t("model_downloaded")
                 selectedDownloadState.isDownloading -> selectedDownloadState.buildStatusText()
-                selectedDownloadState.errorMessage != null -> selectedDownloadState.errorMessage
-                else -> "模型尚未下載"
+                selectedDownloadState.errorMessage != null -> t(selectedDownloadState.errorMessage)
+                else -> t("model_not_downloaded")
             },
             style = MaterialTheme.typography.bodySmall,
             color = if (selectedDownloadState.errorMessage != null) {
@@ -722,7 +736,7 @@ private fun WhisperModelSection(
                 onClick = onDownloadModel,
                 enabled = !selectedDownloadState.isDownloaded && !selectedDownloadState.isDownloading,
             ) {
-                Text("下載 ${settings.model.displayName}")
+                Text(t("download_model", settings.model.displayName))
             }
             val buttonState = when {
                 selectedDownloadState.isDownloading -> 1
@@ -747,7 +761,7 @@ private fun WhisperModelSection(
                                 color = MaterialTheme.colorScheme.error
                             )
                         ) {
-                            Text("取消下載")
+                            Text(t("cancel_download"))
                         }
                     }
                     2 -> {
@@ -762,7 +776,7 @@ private fun WhisperModelSection(
                                 color = MaterialTheme.colorScheme.error
                             )
                         ) {
-                            Text("刪除 ${settings.model.displayName}")
+                            Text(t("delete_model", settings.model.displayName))
                         }
                     }
                     else -> Spacer(modifier = Modifier.fillMaxWidth())
@@ -788,9 +802,9 @@ private fun TranslationSection(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text("本機翻譯", style = MaterialTheme.typography.titleMedium)
+                Text(t("local_translation"), style = MaterialTheme.typography.titleMedium)
                 Text(
-                    text = "來源語言會套用到 ML Kit，也會在翻譯開啟時套用到 Whisper。",
+                    text = t("translation_desc"),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -811,7 +825,7 @@ private fun TranslationSection(
             }
             LanguageDropdown(
                 modifier = Modifier.weight(1f),
-                label = "來源",
+                label = t("source"),
                 selectedTag = settings.sourceLanguageTag,
                 languages = sourceLanguages,
                 onSelected = onSourceChanged,
@@ -827,7 +841,7 @@ private fun TranslationSection(
                     }
                     LanguageDropdown(
                         modifier = Modifier.fillMaxWidth(),
-                        label = "目標",
+                        label = t("target"),
                         selectedTag = settings.targetLanguageTag,
                         languages = targetLanguages,
                         onSelected = onTargetChanged,
@@ -842,7 +856,7 @@ private fun TranslationSection(
             label = "translation_hint"
         ) { enabled ->
             Text(
-                text = if (enabled) "顯示來源與翻譯字幕" else "只顯示來源字幕",
+                text = if (enabled) t("translation_enabled_desc") else t("translation_disabled_desc"),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -894,7 +908,7 @@ private fun Context.overlaySettingsIntent(): Intent =
 private fun Float.asPercent(): String = "${(this * 100).toInt().coerceIn(0, 100)}%"
 
 private fun Long.asReadableSpeed(): String =
-    if (this <= 0L) "計算中"
+    if (this <= 0L) I18n.getString("calculating")
     else "${asReadableSize()}/s"
 
 private fun Long.asReadableSize(): String {
@@ -911,4 +925,53 @@ private fun Long.asReadableSize(): String {
 
     val decimals = if (value >= 100 || unitIndex == 0) 0 else 1
     return "%.${decimals}f %s".format(value, units[unitIndex])
+}
+
+@Composable
+private fun UiLanguageSection(
+    settings: CaptionSettings,
+    onLanguageSelected: (String) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val languages = remember {
+        val systemOption = CaptionLanguage(tag = "system", label = I18n.getString("system_default"))
+        listOf(systemOption) + CaptionLanguages.supported
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(18.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text(t("ui_language"), style = MaterialTheme.typography.titleMedium)
+        Box(modifier = Modifier.fillMaxWidth()) {
+            OutlinedButton(
+                modifier = Modifier.fillMaxWidth(),
+                onClick = { expanded = true },
+            ) {
+                val currentLabel = if (settings.uiLanguageTag == "system") {
+                    t("system_default")
+                } else {
+                    CaptionLanguages.labelFor(settings.uiLanguageTag)
+                }
+                Text(currentLabel)
+            }
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+                modifier = Modifier.fillMaxWidth(0.9f).height(300.dp)
+            ) {
+                languages.forEach { language ->
+                    DropdownMenuItem(
+                        text = { Text(language.label) },
+                        onClick = {
+                            expanded = false
+                            onLanguageSelected(language.tag)
+                        },
+                    )
+                }
+            }
+        }
+    }
 }

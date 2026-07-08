@@ -33,6 +33,10 @@ class CaptionPreferences(context: Context) {
         update { it.copy(targetLanguageTag = tag) }
     }
 
+    fun updateUiLanguage(tag: String) {
+        update { it.copy(uiLanguageTag = tag) }
+    }
+
     private fun update(transform: (CaptionSettings) -> CaptionSettings) {
         val next = normalize(transform(_settings.value))
         prefs.edit {
@@ -41,8 +45,10 @@ class CaptionPreferences(context: Context) {
             putBoolean(KEY_TRANSLATION_ENABLED, next.translationEnabled)
             putString(KEY_SOURCE_LANGUAGE, next.sourceLanguageTag)
             putString(KEY_TARGET_LANGUAGE, next.targetLanguageTag)
+            putString(KEY_UI_LANGUAGE, next.uiLanguageTag)
         }
         _settings.update { next }
+        I18n.setLocale(next.uiLanguageTag)
     }
 
     private fun readSettings(): CaptionSettings =
@@ -53,6 +59,7 @@ class CaptionPreferences(context: Context) {
                 translationEnabled = prefs.getBoolean(KEY_TRANSLATION_ENABLED, false),
                 sourceLanguageTag = prefs.getString(KEY_SOURCE_LANGUAGE, "en") ?: "en",
                 targetLanguageTag = prefs.getString(KEY_TARGET_LANGUAGE, "zh") ?: "zh",
+                uiLanguageTag = prefs.getString(KEY_UI_LANGUAGE, "system") ?: "system",
             )
         )
 
@@ -72,5 +79,6 @@ class CaptionPreferences(context: Context) {
         private const val KEY_TRANSLATION_ENABLED = "translation_enabled"
         private const val KEY_SOURCE_LANGUAGE = "source_language"
         private const val KEY_TARGET_LANGUAGE = "target_language"
+        private const val KEY_UI_LANGUAGE = "ui_language"
     }
 }

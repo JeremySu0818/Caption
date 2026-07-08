@@ -121,24 +121,25 @@ class MlKitSpeechTranscriber {
         engine: SpeechEngineOption,
         onStatus: suspend (String) -> Unit,
     ) {
+        val i18n = com.jeremysu0818.caption.data.I18n
         when (val status = client.checkStatus()) {
             FeatureStatus.AVAILABLE -> return
             FeatureStatus.DOWNLOADABLE -> {
-                onStatus("下載 ${engine.label} 語音模型")
+                onStatus(i18n.getString("mlkit_download_title", engine.label))
                 client.download().collect { downloadStatus ->
                     when (downloadStatus) {
-                        is DownloadStatus.DownloadStarted -> onStatus("下載 ${engine.label} 語音模型")
+                        is DownloadStatus.DownloadStarted -> onStatus(i18n.getString("mlkit_download_title", engine.label))
                         is DownloadStatus.DownloadProgress -> onStatus(
-                            "下載 ${engine.label} ${(downloadStatus.totalBytesDownloaded / 1024 / 1024)} MB"
+                            i18n.getString("mlkit_download_progress", engine.label, downloadStatus.totalBytesDownloaded / 1024 / 1024)
                         )
-                        is DownloadStatus.DownloadCompleted -> onStatus("${engine.label} 模型已就緒")
+                        is DownloadStatus.DownloadCompleted -> onStatus(i18n.getString("mlkit_ready", engine.label))
                         is DownloadStatus.DownloadFailed -> throw downloadStatus.e
                     }
                 }
             }
-            FeatureStatus.DOWNLOADING -> throw IllegalStateException("${engine.label} 模型仍在下載中。")
-            FeatureStatus.UNAVAILABLE -> throw IllegalStateException("${engine.label} 不支援此裝置或語言。")
-            else -> throw IllegalStateException("${engine.label} 狀態不可用：$status")
+            FeatureStatus.DOWNLOADING -> throw IllegalStateException(i18n.getString("mlkit_downloading", engine.label))
+            FeatureStatus.UNAVAILABLE -> throw IllegalStateException(i18n.getString("mlkit_unsupported", engine.label))
+            else -> throw IllegalStateException(i18n.getString("mlkit_status_unavailable", engine.label, status))
         }
     }
 

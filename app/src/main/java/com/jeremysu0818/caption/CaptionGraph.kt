@@ -37,6 +37,7 @@ object CaptionGraph {
             if (initialized) return
             val appContext = context.applicationContext
             preferences = CaptionPreferences(appContext)
+            com.jeremysu0818.caption.data.I18n.init(appContext, preferences.settings.value.uiLanguageTag)
             modelRepository = WhisperModelRepository(appContext)
             transcriber = WhisperTranscriber(appContext)
             translator = CaptionTranslator()

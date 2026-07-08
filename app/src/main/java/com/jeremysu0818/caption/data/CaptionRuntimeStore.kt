@@ -16,7 +16,7 @@ data class CaptionLine(
 
 data class CaptionRuntimeState(
     val isRunning: Boolean = false,
-    val status: String = "尚未啟動",
+    val status: String = "status_not_started",
     val lines: List<CaptionLine> = emptyList(),
     val errorMessage: String? = null,
 )
@@ -56,7 +56,7 @@ object CaptionRuntimeStore {
             val newLine = CaptionLine(id = id, sourceText = text, isFinal = false, showTypewriter = true)
             state.copy(
                 isRunning = true,
-                status = "即時字幕執行中",
+                status = "status_running",
                 lines = upsertLine(state.lines, id, newLine),
                 errorMessage = null,
             )
@@ -78,7 +78,7 @@ object CaptionRuntimeStore {
             )
             state.copy(
                 isRunning = true,
-                status = "即時字幕執行中",
+                status = "status_running",
                 lines = upsertLine(state.lines, id, newLine),
                 errorMessage = null,
             )
@@ -95,10 +95,10 @@ object CaptionRuntimeStore {
     }
 
     fun setError(message: String) {
-        _state.update { it.copy(status = "發生錯誤", errorMessage = message) }
+        _state.update { it.copy(status = "status_error", errorMessage = message) }
     }
 
-    fun setStopped(status: String = "已停止") {
+    fun setStopped(status: String = "status_stopped") {
         _state.update {
             it.copy(
                 isRunning = false,

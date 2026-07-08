@@ -25,9 +25,13 @@ class CaptionTranslator {
             if (safeSource == safeTarget) return@withLock text
 
             val sourceLanguage = TranslateLanguage.fromLanguageTag(safeSource)
-                ?: throw IllegalArgumentException("ML Kit 不支援來源語言：$sourceLanguageTag ($safeSource)")
+                ?: throw IllegalArgumentException(
+                    com.jeremysu0818.caption.data.I18n.getString("error_translate_source_unsupported", sourceLanguageTag, safeSource)
+                )
             val targetLanguage = TranslateLanguage.fromLanguageTag(safeTarget)
-                ?: throw IllegalArgumentException("ML Kit 不支援目標語言：$targetLanguageTag ($safeTarget)")
+                ?: throw IllegalArgumentException(
+                    com.jeremysu0818.caption.data.I18n.getString("error_translate_target_unsupported", targetLanguageTag, safeTarget)
+                )
             val client = translatorFor(sourceLanguage, targetLanguage)
             client.downloadModelIfNeeded(DownloadConditions.Builder().build()).awaitTask()
             client.translate(text).awaitTask().trim()

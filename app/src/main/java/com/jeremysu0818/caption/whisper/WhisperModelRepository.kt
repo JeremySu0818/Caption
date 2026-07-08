@@ -34,8 +34,12 @@ data class ModelDownloadState(
         val readableDownloaded = formatReadableSize(downloadedBytes)
         val readableTotal = formatReadableSize(totalBytes)
         val sizeProgress = "$readableDownloaded / $readableTotal"
-        val speed = if (downloadSpeedBytesPerSecond <= 0L) "計算中" else "${formatReadableSize(downloadSpeedBytesPerSecond)}/s"
-        return "模型下載中 $progressPercent · $sizeProgress · $speed"
+        val speed = if (downloadSpeedBytesPerSecond <= 0L) {
+            com.jeremysu0818.caption.data.I18n.getString("calculating")
+        } else {
+            "${formatReadableSize(downloadSpeedBytesPerSecond)}/s"
+        }
+        return com.jeremysu0818.caption.data.I18n.getString("model_downloading_status", progressPercent, sizeProgress, speed)
     }
 
     private fun formatReadableSize(bytes: Long): String {
@@ -125,7 +129,7 @@ class WhisperModelRepository(context: Context) {
                 if (!sha1.equals(option.sha1, ignoreCase = true)) {
                     tempFile.delete()
                     throw IllegalStateException(
-                        "模型校驗失敗：${option.displayName} 的 SHA-1 不符合官方檔案。"
+                        com.jeremysu0818.caption.data.I18n.getString("error_checksum_failed", option.displayName)
                     )
                 }
                 if (!tempFile.renameTo(destination)) {
@@ -148,7 +152,7 @@ class WhisperModelRepository(context: Context) {
                     model = option,
                     isDownloaded = false,
                     isDownloading = false,
-                    errorMessage = if (error is CancellationException) null else (error.message ?: "模型下載失敗"),
+                    errorMessage = if (error is CancellationException) null else (error.message ?: com.jeremysu0818.caption.data.I18n.getString("error_download_failed")),
                 )
                 throw error
             }
@@ -172,7 +176,7 @@ class WhisperModelRepository(context: Context) {
         try {
             val code = connection.responseCode
             if (code !in 200..299) {
-                throw IllegalStateException("模型下載 HTTP $code")
+                throw IllegalStateException(com.jeremysu0818.caption.data.I18n.getString("error_http", code))
             }
 
             val totalBytes = connection.contentLengthLong
@@ -225,7 +229,9 @@ class WhisperModelRepository(context: Context) {
 
             val downloadedSha1 = digest.digest().toHexString()
             if (!downloadedSha1.equals(option.sha1, ignoreCase = true)) {
-                throw IllegalStateException("SHA-1 不符，預期 ${option.sha1}，實際 $downloadedSha1")
+                throw IllegalStateException(
+                    com.jeremysu0818.caption.data.I18n.getString("error_sha1_mismatch", option.sha1, downloadedSha1)
+                )
             }
         } finally {
             cancelHandler?.dispose()
