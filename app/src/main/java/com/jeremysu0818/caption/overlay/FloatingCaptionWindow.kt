@@ -279,7 +279,6 @@ fun ControlBarApp(
             bottomEnd = 0.dp
         ),
         color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.94f),
-        shadowElevation = 8.dp
     ) {
         Box(
             modifier = Modifier.fillMaxSize(),
@@ -416,7 +415,6 @@ fun ContentListApp(
             ),
             color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.94f),
             contentColor = MaterialTheme.colorScheme.onSurface,
-            shadowElevation = 8.dp
         ) {
             CaptionContentList(
                 lines = captionsState.lines,
