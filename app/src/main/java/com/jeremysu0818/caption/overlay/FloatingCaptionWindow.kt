@@ -33,6 +33,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.zIndex
 import androidx.lifecycle.*
 import androidx.savedstate.*
 import com.jeremysu0818.caption.data.CaptionLine
@@ -65,6 +66,10 @@ private class OverlayLifecycleOwner : LifecycleOwner, ViewModelStoreOwner, Saved
         store.clear()
     }
 }
+
+// Keep both WindowManager layers fully opaque. The shared Compose Surface below is
+// the only place that controls the visual translucency of the floating caption.
+private const val OverlayWindowAlpha = 1f
 
 class FloatingCaptionState(
     initialX: Int,
@@ -101,7 +106,7 @@ class FloatingCaptionWindow(private val context: Context) {
             val baseWidth = (screenWidthPixels - 32 * density).coerceAtMost(720 * density)
             val windowWidthPx = (baseWidth * 0.9f).roundToInt()
 
-            val barHeightPx = (36 * density).roundToInt()
+            val barHeightPx = (16 * density).roundToInt()
             val minHeightPx = (screenHeightPixels / 6f).roundToInt()
             val maxHeightPx = (screenHeightPixels * 0.6f).roundToInt()
 
@@ -114,7 +119,7 @@ class FloatingCaptionWindow(private val context: Context) {
                 maxHeightPx = maxHeightPx
             )
 
-            // 視窗 1：頂部控制條 (Control Bar)，大小固定 (36dp)
+            // 視窗 1：頂部控制條 (Control Bar)，大小固定 (24dp)
             val controlParams = WindowManager.LayoutParams(
                 windowWidthPx,
                 barHeightPx,
@@ -128,9 +133,11 @@ class FloatingCaptionWindow(private val context: Context) {
                 gravity = Gravity.TOP or Gravity.START
                 x = state.x
                 y = state.y
+                alpha = OverlayWindowAlpha
             }
 
-            // 視窗 2：內容字幕區 (Content Window)，高度固定為最大高度，且設定為非觸控視窗
+            // 視窗 2：內容字幕區 (Content Window)，高度固定為最大高度。
+            // 不使用 FLAG_NOT_TOUCHABLE，否則部分系統會把透明 overlay 的視窗 alpha 強制降到 0.8。
             // 核心修正：我們不再讓它全螢幕，而是讓它與視窗 1 使用相同的 x/y 定位機制！
             // 這樣 Android 系統會以完全相同的規則（包含狀態列、瀏海屏偏移）來排列這兩個視窗，徹底消除兩者之間的巨大縫隙！
             val contentParams = WindowManager.LayoutParams(
@@ -138,7 +145,7 @@ class FloatingCaptionWindow(private val context: Context) {
                 maxHeightPx,
                 WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                        WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
+                        WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
                         WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
                         WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
                 PixelFormat.TRANSLUCENT
@@ -147,6 +154,7 @@ class FloatingCaptionWindow(private val context: Context) {
                 x = state.x
                 // 緊貼在控制條下方，重疊 1 像素消除 Subpixel 微小細縫
                 y = state.y + barHeightPx - 1
+                alpha = OverlayWindowAlpha
             }
 
             val controlOwner = OverlayLifecycleOwner().apply { init() }
@@ -367,6 +375,10 @@ fun ControlBarApp(
                 Box(
                     modifier = Modifier
                         .size(36.dp, 5.dp)
+                        // Center the handle between the window top and the
+                        // point where the top caption fade starts.
+                        .offset(y = 5.dp)
+                        .zIndex(1f)
                         .clip(RoundedCornerShape(2.5.dp))
                         .background(Color.White.copy(alpha = barAlpha))
                 )
@@ -410,7 +422,7 @@ fun ContentListApp(
                 lines = captionsState.lines,
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(16.dp)
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
             )
         }
     }
@@ -438,14 +450,20 @@ fun CaptionContentList(
             .graphicsLayer { alpha = 0.99f }
             .drawWithContent {
                 drawContent()
-                val fadeHeight = 16.dp.toPx()
+                // Leave a 2dp gap between the fade and the first/last line
+                // inside the list's 8dp vertical padding.
+                val fadeHeight = 6.dp.toPx()
                 val topStop = (fadeHeight / size.height).coerceIn(0f, 0.5f)
                 val bottomStop = ((size.height - fadeHeight) / size.height).coerceIn(0.5f, 1f)
                 drawRect(
                     brush = Brush.verticalGradient(
                         0f to Color.Transparent,
+                        // Keep the same 16dp fade area, but hold the text longer
+                        // before fading so the edge transition is more apparent.
+                        (topStop * 0.55f) to Color.Transparent,
                         topStop to Color.Black,
                         bottomStop to Color.Black,
+                        (bottomStop + (1f - bottomStop) * 0.45f) to Color.Transparent,
                         1f to Color.Transparent,
                     ),
                     blendMode = BlendMode.DstIn
