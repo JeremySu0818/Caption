@@ -8,17 +8,13 @@ import android.os.Looper
 import android.view.Gravity
 import android.view.WindowManager
 import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.Spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.ui.input.pointer.positionChange
-import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -120,12 +116,21 @@ class FloatingCaptionWindow(private val context: Context) {
             val width = visualWidth + (paddingDp * 2)
 
             val initialY = (context.resources.displayMetrics.heightPixels * 0.72f).roundToInt()
+            val initialContentHeight = (
+                context.resources.configuration.screenHeightDp * density / 6f
+            ).roundToInt()
+            val initialWindowHeight = initialContentHeight + 32.dp(density)
+            val maximumContentHeight = (
+                context.resources.configuration.screenHeightDp * density * 0.6f
+            ).roundToInt()
+            val fixedContainerHeight = maximumContentHeight + 32.dp(density)
+            val fixedBottomY = initialY + initialWindowHeight
 
             val owner = OverlayLifecycleOwner().apply { init() }
 
             val params = WindowManager.LayoutParams(
                 width,
-                WindowManager.LayoutParams.WRAP_CONTENT,
+                fixedContainerHeight,
                 WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                         WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
@@ -134,7 +139,7 @@ class FloatingCaptionWindow(private val context: Context) {
             ).apply {
                 gravity = Gravity.TOP or Gravity.START
                 x = (screenWidth - width) / 2
-                y = initialY
+                y = fixedBottomY - fixedContainerHeight
             }
 
             val view = ComposeView(context).apply {
@@ -149,34 +154,26 @@ class FloatingCaptionWindow(private val context: Context) {
                         val maxHeightLimit = screenHeight * 0.6f
 
                         var targetHeight by remember(screenHeight) { mutableStateOf(minHeightLimit) }
-                        val maxHeight by animateDpAsState(targetValue = targetHeight, label = "maxHeight")
 
                         var isPressing by remember { mutableStateOf(false) }
                         val barAlpha by animateFloatAsState(targetValue = if (isPressing) 0.8f else 0.2f, label = "barAlpha")
-
-                        var isTouched by remember { mutableStateOf(false) }
-                        val scale by animateFloatAsState(
-                            targetValue = if (isTouched) 1.04f else 1.0f,
-                            animationSpec = spring(
-                                dampingRatio = Spring.DampingRatioMediumBouncy,
-                                stiffness = Spring.StiffnessLow
-                            ),
-                            label = "scale"
-                        )
+                        val listState = rememberLazyListState()
 
                         Box(
                             modifier = Modifier
-                                .height(maxHeight + 32.dp)
+                                .fillMaxSize(),
+                            contentAlignment = Alignment.BottomCenter,
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .fillMaxSize()
-                                    .graphicsLayer {
-                                        scaleX = scale
-                                        scaleY = scale
-                                    }
-                                    .padding(horizontal = 16.dp, vertical = 16.dp)
+                                    .fillMaxWidth()
+                                    .height(targetHeight + 32.dp)
                             ) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(horizontal = 16.dp, vertical = 16.dp)
+                                ) {
                                 Surface(
                                     modifier = Modifier
                                         .fillMaxSize()
@@ -185,7 +182,6 @@ class FloatingCaptionWindow(private val context: Context) {
                                 color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.94f),
                                 contentColor = MaterialTheme.colorScheme.onSurface,
                             ) {
-                                 val listState = rememberLazyListState()
                                  val linesCount = state.lines.size
                                  val isAtBottom by remember {
                                      derivedStateOf {
@@ -268,18 +264,11 @@ class FloatingCaptionWindow(private val context: Context) {
                                     }
                                 }
                             }
+                            }
 
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .pointerInput(Unit) {
-                                        awaitPointerEventScope {
-                                            while (true) {
-                                                val event = awaitPointerEvent(PointerEventPass.Initial)
-                                                isTouched = event.changes.any { it.pressed }
-                                            }
-                                        }
-                                    }
                                     .pointerInput(Unit) {
                                         detectDragGestures(
                                             onDragStart = { isPressing = true },
@@ -303,6 +292,7 @@ class FloatingCaptionWindow(private val context: Context) {
                                             awaitPointerEventScope {
                                                 while (true) {
                                                     val down = awaitFirstDown()
+                                                    down.consume()
                                                     isPressing = true
                                                     var dragTriggered = false
                                                     var accumulatedDrag = 0f
@@ -314,26 +304,19 @@ class FloatingCaptionWindow(private val context: Context) {
                                                         if (!anyPressed) break
 
                                                         val change = event.changes.firstOrNull { it.id == pointer.id } ?: break
-                                                        if (change.isConsumed) break
-
                                                         val dragAmount = change.position.y - change.previousPosition.y
                                                         accumulatedDrag += dragAmount
-
                                                         if (!dragTriggered && kotlin.math.abs(accumulatedDrag) > viewConfiguration.touchSlop) {
                                                             dragTriggered = true
                                                         }
+                                                        // The white handle owns the gesture from the initial press;
+                                                        // the outer window-drag handler must never move it first.
+                                                        change.consume()
 
                                                         if (dragTriggered) {
-                                                            change.consume()
                                                             val deltaDp = (dragAmount / density).dp
-                                                            val oldHeight = targetHeight
-                                                            val newHeight = (targetHeight - deltaDp).coerceIn(minHeightLimit, maxHeightLimit)
-
-                                                            if (newHeight != oldHeight) {
-                                                                targetHeight = newHeight
-                                                                params.y += dragAmount.roundToInt()
-                                                                windowManager.updateViewLayout(this@apply, params)
-                                                            }
+                                                            targetHeight = (targetHeight - deltaDp)
+                                                                .coerceIn(minHeightLimit, maxHeightLimit)
                                                         }
                                                     }
 
@@ -341,9 +324,12 @@ class FloatingCaptionWindow(private val context: Context) {
 
                                                     if (!dragTriggered) {
                                                         val midpoint = (minHeightLimit + maxHeightLimit) / 2
-                                                        val isAtMin = kotlin.math.abs(targetHeight.value - minHeightLimit.value) < 1f
-                                                        val isAtMax = kotlin.math.abs(targetHeight.value - maxHeightLimit.value) < 1f
-
+                                                        val isAtMin = kotlin.math.abs(
+                                                            targetHeight.value - minHeightLimit.value
+                                                        ) < 1f
+                                                        val isAtMax = kotlin.math.abs(
+                                                            targetHeight.value - maxHeightLimit.value
+                                                        ) < 1f
                                                         val nextHeight = when {
                                                             isAtMin -> maxHeightLimit
                                                             isAtMax -> minHeightLimit
@@ -439,6 +425,6 @@ private fun TypewriterText(
         modifier = modifier,
         color = color,
         style = style,
-        fontWeight = fontWeight
+        fontWeight = fontWeight,
     )
 }
