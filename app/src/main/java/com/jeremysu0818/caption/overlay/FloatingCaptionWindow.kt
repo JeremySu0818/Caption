@@ -7,7 +7,12 @@ import android.os.Handler
 import android.os.Looper
 import android.view.Gravity
 import android.view.WindowManager
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -15,6 +20,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -38,6 +45,7 @@ import androidx.lifecycle.*
 import androidx.savedstate.*
 import com.jeremysu0818.caption.data.CaptionLine
 import com.jeremysu0818.caption.data.CaptionRuntimeStore
+import com.jeremysu0818.caption.data.t
 import com.jeremysu0818.caption.ui.theme.CaptionTheme
 import kotlinx.coroutines.delay
 import kotlin.math.abs
@@ -84,15 +92,30 @@ class FloatingCaptionState(
 
 data class WindowPosition(val x: Int, val y: Int)
 
-class FloatingCaptionWindow(private val context: Context) {
+private class CloseTargetState {
+    var isVisible by mutableStateOf(false)
+    var isActive by mutableStateOf(false)
+
+    fun hide() {
+        isVisible = false
+        isActive = false
+    }
+}
+
+class FloatingCaptionWindow(
+    private val context: Context,
+    private val onCloseRequested: () -> Unit
+) {
     private val mainHandler = Handler(Looper.getMainLooper())
     private val windowManager = context.getSystemService(WindowManager::class.java)
     
     private var controlView: ComposeView? = null
     private var contentView: ComposeView? = null
+    private var closeTargetView: ComposeView? = null
     
     private var controlLifecycle: OverlayLifecycleOwner? = null
     private var contentLifecycle: OverlayLifecycleOwner? = null
+    private var closeTargetLifecycle: OverlayLifecycleOwner? = null
 
     @SuppressLint("ClickableViewAccessibility")
     fun show() {
@@ -107,6 +130,7 @@ class FloatingCaptionWindow(private val context: Context) {
             val windowWidthPx = (baseWidth * 0.9f).roundToInt()
 
             val barHeightPx = (16 * density).roundToInt()
+            val closeTargetHeightPx = (112 * density).roundToInt()
             val minHeightPx = (screenHeightPixels / 6f).roundToInt()
             val maxHeightPx = (screenHeightPixels * 0.6f).roundToInt()
 
@@ -159,6 +183,23 @@ class FloatingCaptionWindow(private val context: Context) {
 
             val controlOwner = OverlayLifecycleOwner().apply { init() }
             val contentOwner = OverlayLifecycleOwner().apply { init() }
+            val closeTargetOwner = OverlayLifecycleOwner().apply { init() }
+            val closeTargetState = CloseTargetState()
+
+            // This window is visual only, so the original control bar continues to
+            // receive the drag gesture even while it overlaps the close target.
+            val closeTargetParams = WindowManager.LayoutParams(
+                WindowManager.LayoutParams.MATCH_PARENT,
+                closeTargetHeightPx,
+                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                        WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
+                        WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+                PixelFormat.TRANSLUCENT
+            ).apply {
+                gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
+                alpha = OverlayWindowAlpha
+            }
 
             val cView = ComposeView(context).apply {
                 setViewTreeLifecycleOwner(controlOwner)
@@ -179,6 +220,23 @@ class FloatingCaptionWindow(private val context: Context) {
                                 contentParams.x = state.x
                                 contentParams.y = state.y + barHeightPx - 1
                                 windowManager.updateViewLayout(contentView, contentParams)
+
+                                // Use the control bar's position rather than the
+                                // caption panel's bottom edge. This keeps the target
+                                // intentional instead of activating as soon as a tall
+                                // subtitle window happens to overlap it.
+                                val isOverCloseTarget =
+                                    state.y + barHeightPx >= screenHeightPixels - closeTargetHeightPx
+                                closeTargetState.isVisible = isOverCloseTarget
+                                closeTargetState.isActive = isOverCloseTarget
+                            },
+                            onDragEnded = {
+                                val shouldClose = closeTargetState.isActive
+                                closeTargetState.hide()
+                                if (shouldClose) onCloseRequested()
+                            },
+                            onDragCancelled = {
+                                closeTargetState.hide()
                             },
                             onResize = { dy ->
                                 val oldHeight = state.heightPx
@@ -229,26 +287,47 @@ class FloatingCaptionWindow(private val context: Context) {
                 }
             }
 
+            val closeView = ComposeView(context).apply {
+                setViewTreeLifecycleOwner(closeTargetOwner)
+                setViewTreeViewModelStoreOwner(closeTargetOwner)
+                setViewTreeSavedStateRegistryOwner(closeTargetOwner)
+                setContent {
+                    CaptionTheme {
+                        CloseTargetApp(closeTargetState)
+                    }
+                }
+            }
+
             windowManager.addView(tView, contentParams)
             windowManager.addView(cView, controlParams)
+            // Add last so the close target is visually above both the caption
+            // content and its control bar. FLAG_NOT_TOUCHABLE keeps the drag
+            // gesture flowing through to the control bar underneath.
+            windowManager.addView(closeView, closeTargetParams)
             
             controlView = cView
             contentView = tView
+            closeTargetView = closeView
             controlLifecycle = controlOwner
             contentLifecycle = contentOwner
+            closeTargetLifecycle = closeTargetOwner
         }
     }
 
     fun dismiss() {
         mainHandler.post {
-            contentView?.let { windowManager.removeView(it) }
             controlView?.let { windowManager.removeView(it) }
+            closeTargetView?.let { windowManager.removeView(it) }
+            contentView?.let { windowManager.removeView(it) }
             contentView = null
             controlView = null
+            closeTargetView = null
             controlLifecycle?.destroy()
             contentLifecycle?.destroy()
+            closeTargetLifecycle?.destroy()
             controlLifecycle = null
             contentLifecycle = null
+            closeTargetLifecycle = null
         }
     }
 
@@ -263,6 +342,8 @@ class FloatingCaptionWindow(private val context: Context) {
 fun ControlBarApp(
     state: FloatingCaptionState,
     onMove: (Float, Float) -> Unit,
+    onDragEnded: () -> Unit,
+    onDragCancelled: () -> Unit,
     onResize: (Float) -> Unit,
     onToggleSize: () -> Unit
 ) {
@@ -310,7 +391,15 @@ fun ControlBarApp(
                                 dragState.lastY = event.rawY
                                 true
                             }
-                            else -> false
+                            android.view.MotionEvent.ACTION_UP -> {
+                                onDragEnded()
+                                true
+                            }
+                            android.view.MotionEvent.ACTION_CANCEL -> {
+                                onDragCancelled()
+                                true
+                            }
+                            else -> true
                         }
                     }
                 },
@@ -381,6 +470,31 @@ fun ControlBarApp(
                         .clip(RoundedCornerShape(2.5.dp))
                         .background(Color.White.copy(alpha = barAlpha))
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun CloseTargetApp(state: CloseTargetState) {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.BottomCenter
+    ) {
+        AnimatedVisibility(
+            visible = state.isVisible,
+            enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+            exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
+        ) {
+            Button(
+                onClick = {},
+                modifier = Modifier.padding(bottom = 20.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error,
+                    contentColor = MaterialTheme.colorScheme.onError,
+                ),
+            ) {
+                Text(text = t("stop"))
             }
         }
     }

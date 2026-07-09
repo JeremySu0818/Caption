@@ -109,7 +109,7 @@ class CaptionCaptureService : Service() {
         isRunning = true
         CaptionTileService.requestTileRefresh(this)
 
-        val overlay = FloatingCaptionWindow(this).also { it.show() }
+        val overlay = FloatingCaptionWindow(this) { stopSelf() }.also { it.show() }
         overlayWindow = overlay
         CaptionRuntimeStore.setRunning(I18n.getString("status_preparing"))
 
