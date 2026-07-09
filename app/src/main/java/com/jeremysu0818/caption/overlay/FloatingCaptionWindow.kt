@@ -10,65 +10,36 @@ import android.view.WindowManager
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.ui.input.pointer.positionChange
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleOwner
-import androidx.lifecycle.LifecycleRegistry
-import androidx.lifecycle.ViewModelStore
-import androidx.lifecycle.ViewModelStoreOwner
-import androidx.lifecycle.setViewTreeLifecycleOwner
-import androidx.lifecycle.setViewTreeViewModelStoreOwner
-import androidx.savedstate.SavedStateRegistry
-import androidx.savedstate.SavedStateRegistryController
-import androidx.savedstate.SavedStateRegistryOwner
-import androidx.savedstate.setViewTreeSavedStateRegistryOwner
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.*
+import androidx.savedstate.*
+import com.jeremysu0818.caption.data.CaptionLine
 import com.jeremysu0818.caption.data.CaptionRuntimeStore
 import com.jeremysu0818.caption.ui.theme.CaptionTheme
+import kotlinx.coroutines.delay
+import kotlin.math.abs
 import kotlin.math.roundToInt
 
 private class OverlayLifecycleOwner : LifecycleOwner, ViewModelStoreOwner, SavedStateRegistryOwner {
@@ -95,296 +66,437 @@ private class OverlayLifecycleOwner : LifecycleOwner, ViewModelStoreOwner, Saved
     }
 }
 
+class FloatingCaptionState(
+    initialX: Int,
+    initialY: Int,
+    val minHeightPx: Int,
+    val maxHeightPx: Int
+) {
+    var x by mutableIntStateOf(initialX)
+    var y by mutableIntStateOf(initialY)
+    var heightPx by mutableIntStateOf(minHeightPx)
+}
+
+data class WindowPosition(val x: Int, val y: Int)
+
 class FloatingCaptionWindow(private val context: Context) {
     private val mainHandler = Handler(Looper.getMainLooper())
     private val windowManager = context.getSystemService(WindowManager::class.java)
-    private var composeView: ComposeView? = null
-    private var lifecycleOwner: OverlayLifecycleOwner? = null
+    
+    private var controlView: ComposeView? = null
+    private var contentView: ComposeView? = null
+    
+    private var controlLifecycle: OverlayLifecycleOwner? = null
+    private var contentLifecycle: OverlayLifecycleOwner? = null
 
     @SuppressLint("ClickableViewAccessibility")
     fun show() {
         mainHandler.post {
-            if (composeView != null) return@post
+            if (controlView != null) return@post
 
             val density = context.resources.displayMetrics.density
-            val screenWidth = context.resources.displayMetrics.widthPixels
-            val baseWidth = (screenWidth - 32.dp(density)).coerceAtMost(720.dp(density))
-            
-            // Multiply visual width by 0.9. Keep padding to allow M3 scaling without clipping.
-            val visualWidth = (baseWidth * 0.9f).roundToInt()
-            val paddingDp = 16.dp(density)
-            val width = visualWidth + (paddingDp * 2)
+            val screenWidthPixels = context.resources.displayMetrics.widthPixels
+            val screenHeightPixels = context.resources.displayMetrics.heightPixels
 
-            val initialY = (context.resources.displayMetrics.heightPixels * 0.72f).roundToInt()
-            val initialContentHeight = (
-                context.resources.configuration.screenHeightDp * density / 6f
-            ).roundToInt()
-            val initialWindowHeight = initialContentHeight + 32.dp(density)
-            val maximumContentHeight = (
-                context.resources.configuration.screenHeightDp * density * 0.6f
-            ).roundToInt()
-            val fixedContainerHeight = maximumContentHeight + 32.dp(density)
-            val fixedBottomY = initialY + initialWindowHeight
+            val baseWidth = (screenWidthPixels - 32 * density).coerceAtMost(720 * density)
+            val windowWidthPx = (baseWidth * 0.9f).roundToInt()
 
-            val owner = OverlayLifecycleOwner().apply { init() }
+            val barHeightPx = (36 * density).roundToInt()
+            val minHeightPx = (screenHeightPixels / 6f).roundToInt()
+            val maxHeightPx = (screenHeightPixels * 0.6f).roundToInt()
 
-            val params = WindowManager.LayoutParams(
-                width,
-                fixedContainerHeight,
+            val initialTopY = (screenHeightPixels * 0.72f).roundToInt()
+
+            val state = FloatingCaptionState(
+                initialX = (screenWidthPixels - windowWidthPx) / 2,
+                initialY = initialTopY,
+                minHeightPx = minHeightPx,
+                maxHeightPx = maxHeightPx
+            )
+
+            // 視窗 1：頂部控制條 (Control Bar)，大小固定 (36dp)
+            val controlParams = WindowManager.LayoutParams(
+                windowWidthPx,
+                barHeightPx,
                 WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                         WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
-                        WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
-                PixelFormat.TRANSLUCENT,
+                        WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
+                        WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                PixelFormat.TRANSLUCENT
             ).apply {
                 gravity = Gravity.TOP or Gravity.START
-                x = (screenWidth - width) / 2
-                y = fixedBottomY - fixedContainerHeight
+                x = state.x
+                y = state.y
             }
 
-            val view = ComposeView(context).apply {
-                setViewTreeLifecycleOwner(owner)
-                setViewTreeViewModelStoreOwner(owner)
-                setViewTreeSavedStateRegistryOwner(owner)
+            // 視窗 2：內容字幕區 (Content Window)，高度固定為最大高度，且設定為非觸控視窗
+            // 核心修正：我們不再讓它全螢幕，而是讓它與視窗 1 使用相同的 x/y 定位機制！
+            // 這樣 Android 系統會以完全相同的規則（包含狀態列、瀏海屏偏移）來排列這兩個視窗，徹底消除兩者之間的巨大縫隙！
+            val contentParams = WindowManager.LayoutParams(
+                windowWidthPx,
+                maxHeightPx,
+                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                        WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
+                        WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
+                        WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                PixelFormat.TRANSLUCENT
+            ).apply {
+                gravity = Gravity.TOP or Gravity.START
+                x = state.x
+                // 緊貼在控制條下方，重疊 1 像素消除 Subpixel 微小細縫
+                y = state.y + barHeightPx - 1
+            }
+
+            val controlOwner = OverlayLifecycleOwner().apply { init() }
+            val contentOwner = OverlayLifecycleOwner().apply { init() }
+
+            val cView = ComposeView(context).apply {
+                setViewTreeLifecycleOwner(controlOwner)
+                setViewTreeViewModelStoreOwner(controlOwner)
+                setViewTreeSavedStateRegistryOwner(controlOwner)
                 setContent {
-                    val state by CaptionRuntimeStore.state.collectAsState()
                     CaptionTheme {
-                        val screenHeight = androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp.dp
-                        val minHeightLimit = screenHeight / 6f
-                        val maxHeightLimit = screenHeight * 0.6f
+                        ControlBarApp(
+                            state = state,
+                            onMove = { dx, dy ->
+                                state.x += dx.roundToInt()
+                                state.y += dy.roundToInt()
+                                
+                                controlParams.x = state.x
+                                controlParams.y = state.y
+                                windowManager.updateViewLayout(controlView, controlParams)
 
-                        var targetHeight by remember(screenHeight) { mutableStateOf(minHeightLimit) }
+                                contentParams.x = state.x
+                                contentParams.y = state.y + barHeightPx - 1
+                                windowManager.updateViewLayout(contentView, contentParams)
+                            },
+                            onResize = { dy ->
+                                val oldHeight = state.heightPx
+                                val newHeight = (oldHeight - dy.roundToInt()).coerceIn(state.minHeightPx, state.maxHeightPx)
+                                val heightDiff = newHeight - oldHeight
+                                
+                                state.heightPx = newHeight
+                                state.y -= heightDiff
+                                
+                                controlParams.y = state.y
+                                windowManager.updateViewLayout(controlView, controlParams)
 
-                        var isPressing by remember { mutableStateOf(false) }
-                        val barAlpha by animateFloatAsState(targetValue = if (isPressing) 0.8f else 0.2f, label = "barAlpha")
-                        val listState = rememberLazyListState()
-
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize(),
-                            contentAlignment = Alignment.BottomCenter,
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(targetHeight + 32.dp)
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .padding(horizontal = 16.dp, vertical = 16.dp)
-                                ) {
-                                Surface(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .padding(top = 20.dp),
-                                shape = RoundedCornerShape(20.dp),
-                                color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.94f),
-                                contentColor = MaterialTheme.colorScheme.onSurface,
-                            ) {
-                                 val linesCount = state.lines.size
-                                 val isAtBottom by remember {
-                                     derivedStateOf {
-                                         listState.firstVisibleItemIndex <= 1
-                                     }
-                                 }
-
-                                 LaunchedEffect(linesCount) {
-                                     if (linesCount > 0 && isAtBottom) {
-                                         listState.animateScrollToItem(0)
-                                     }
-                                 }
-
-                                LazyColumn(
-                                    state = listState,
-                                    reverseLayout = true,
-                                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                                    contentPadding = PaddingValues(top = 16.dp, bottom = 16.dp),
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .graphicsLayer { alpha = 0.99f }
-                                        .drawWithContent {
-                                            drawContent()
-                                            val fadeOutHeight = 16.dp(density).toFloat()
-                                            val topStop = (fadeOutHeight / size.height).coerceIn(0f, 0.5f)
-                                            val bottomStop = ((size.height - fadeOutHeight) / size.height).coerceIn(0.5f, 1f)
-                                            val gradient = Brush.verticalGradient(
-                                                0f to Color.Transparent,
-                                                topStop to Color.Black,
-                                                bottomStop to Color.Black,
-                                                1f to Color.Transparent,
-                                                startY = 0f,
-                                                endY = size.height
-                                            )
-                                            drawRect(brush = gradient, blendMode = BlendMode.DstIn)
-                                        }
-                                        .padding(horizontal = 18.dp)
-                                ) {
-                                    items(state.lines.reversed(), key = { line -> line.id }) { line ->
-                                        val isNewest = line.id == state.lines.lastOrNull()?.id
-                                        Column(
-                                            modifier = Modifier.animateContentSize()
-                                        ) {
-                                            if (isNewest && line.showTypewriter) {
-                                                TypewriterText(
-                                                    text = line.sourceText,
-                                                    style = MaterialTheme.typography.titleLarge,
-                                                    fontWeight = FontWeight.Bold,
-                                                )
-                                            } else {
-                                                Text(
-                                                    text = line.sourceText,
-                                                    style = MaterialTheme.typography.titleLarge,
-                                                    fontWeight = FontWeight.Bold,
-                                                )
-                                            }
-
-                                            if (line.isTranslating && line.translatedText == null) {
-                                                Text(
-                                                    text = "...",
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                                                    style = MaterialTheme.typography.bodyLarge,
-                                                )
-                                            } else if (line.translatedText != null && line.translatedText.isNotBlank()) {
-                                                if (isNewest) {
-                                                    TypewriterText(
-                                                        text = line.translatedText,
-                                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                        style = MaterialTheme.typography.bodyLarge,
-                                                    )
-                                                } else {
-                                                    Text(
-                                                        text = line.translatedText,
-                                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                        style = MaterialTheme.typography.bodyLarge,
-                                                    )
-                                                }
-                                            }
-                                        }
-                                    }
+                                contentParams.y = state.y + barHeightPx - 1
+                                windowManager.updateViewLayout(contentView, contentParams)
+                            },
+                            onToggleSize = {
+                                val nextHeight = if (state.heightPx < (state.minHeightPx + state.maxHeightPx) / 2) {
+                                    state.maxHeightPx
+                                } else {
+                                    state.minHeightPx
                                 }
+                                val heightDiff = nextHeight - state.heightPx
+                                state.heightPx = nextHeight
+                                state.y -= heightDiff
+                                
+                                controlParams.y = state.y
+                                windowManager.updateViewLayout(controlView, controlParams)
+
+                                contentParams.y = state.y + barHeightPx - 1
+                                windowManager.updateViewLayout(contentView, contentParams)
                             }
-                            }
-
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .pointerInput(Unit) {
-                                        detectDragGestures(
-                                            onDragStart = { isPressing = true },
-                                            onDragEnd = { isPressing = false },
-                                            onDragCancel = { isPressing = false },
-                                            onDrag = { change, dragAmount ->
-                                                change.consume()
-                                                params.x += dragAmount.x.roundToInt()
-                                                params.y += dragAmount.y.roundToInt()
-                                                windowManager.updateViewLayout(this@apply, params)
-                                            }
-                                        )
-                                    },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .width(48.dp)
-                                        .height(28.dp)
-                                        .pointerInput(screenHeight) {
-                                            awaitPointerEventScope {
-                                                while (true) {
-                                                    val down = awaitFirstDown()
-                                                    down.consume()
-                                                    isPressing = true
-                                                    var dragTriggered = false
-                                                    var accumulatedDrag = 0f
-                                                    var pointer = down
-
-                                                    while (true) {
-                                                        val event = awaitPointerEvent()
-                                                        val anyPressed = event.changes.any { it.pressed }
-                                                        if (!anyPressed) break
-
-                                                        val change = event.changes.firstOrNull { it.id == pointer.id } ?: break
-                                                        val dragAmount = change.position.y - change.previousPosition.y
-                                                        accumulatedDrag += dragAmount
-                                                        if (!dragTriggered && kotlin.math.abs(accumulatedDrag) > viewConfiguration.touchSlop) {
-                                                            dragTriggered = true
-                                                        }
-                                                        // The white handle owns the gesture from the initial press;
-                                                        // the outer window-drag handler must never move it first.
-                                                        change.consume()
-
-                                                        if (dragTriggered) {
-                                                            val deltaDp = (dragAmount / density).dp
-                                                            targetHeight = (targetHeight - deltaDp)
-                                                                .coerceIn(minHeightLimit, maxHeightLimit)
-                                                        }
-                                                    }
-
-                                                    isPressing = false
-
-                                                    if (!dragTriggered) {
-                                                        val midpoint = (minHeightLimit + maxHeightLimit) / 2
-                                                        val isAtMin = kotlin.math.abs(
-                                                            targetHeight.value - minHeightLimit.value
-                                                        ) < 1f
-                                                        val isAtMax = kotlin.math.abs(
-                                                            targetHeight.value - maxHeightLimit.value
-                                                        ) < 1f
-                                                        val nextHeight = when {
-                                                            isAtMin -> maxHeightLimit
-                                                            isAtMax -> minHeightLimit
-                                                            targetHeight < midpoint -> minHeightLimit
-                                                            else -> maxHeightLimit
-                                                        }
-                                                        targetHeight = nextHeight
-                                                    }
-                                                }
-                                            }
-                                        },
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(32.dp, 4.dp)
-                                            .background(
-                                                color = Color.White.copy(alpha = barAlpha),
-                                                shape = RoundedCornerShape(2.dp)
-                                            )
-                                    )
-                                }
-                            }
-                            }
-                        }
+                        )
                     }
                 }
             }
 
-            windowManager.addView(view, params)
-            composeView = view
-            lifecycleOwner = owner
+            val tView = ComposeView(context).apply {
+                setViewTreeLifecycleOwner(contentOwner)
+                setViewTreeViewModelStoreOwner(contentOwner)
+                setViewTreeSavedStateRegistryOwner(contentOwner)
+                setContent {
+                    CaptionTheme {
+                        ContentListApp(
+                            state = state,
+                            barHeightPx = barHeightPx
+                        )
+                    }
+                }
+            }
+
+            windowManager.addView(tView, contentParams)
+            windowManager.addView(cView, controlParams)
+            
+            controlView = cView
+            contentView = tView
+            controlLifecycle = controlOwner
+            contentLifecycle = contentOwner
         }
     }
 
     fun dismiss() {
         mainHandler.post {
-            composeView?.let { windowManager.removeView(it) }
-            composeView = null
-            lifecycleOwner?.destroy()
-            lifecycleOwner = null
+            contentView?.let { windowManager.removeView(it) }
+            controlView?.let { windowManager.removeView(it) }
+            contentView = null
+            controlView = null
+            controlLifecycle?.destroy()
+            contentLifecycle?.destroy()
+            controlLifecycle = null
+            contentLifecycle = null
         }
     }
 
-    @Deprecated("No longer used, UI reacts to CaptionRuntimeStore directly")
+    @Deprecated("不再使用")
     fun updateStatus(status: String) {}
 
-    @Deprecated("No longer used, UI reacts to CaptionRuntimeStore directly")
+    @Deprecated("不再使用")
     fun updateCaption(sourceText: String, translatedText: String?) {}
-
-    private fun Int.dp(density: Float): Int = (this * density).roundToInt()
 }
 
 @Composable
-private fun TypewriterText(
+fun ControlBarApp(
+    state: FloatingCaptionState,
+    onMove: (Float, Float) -> Unit,
+    onResize: (Float) -> Unit,
+    onToggleSize: () -> Unit
+) {
+    var isHoveringHandle by remember { mutableStateOf(false) }
+    val barAlpha by animateFloatAsState(if (isHoveringHandle) 0.8f else 0.3f, label = "Alpha")
+    val touchSlop = androidx.compose.ui.platform.LocalViewConfiguration.current.touchSlop
+
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        shape = RoundedCornerShape(
+            topStart = 20.dp,
+            topEnd = 20.dp,
+            bottomStart = 0.dp,
+            bottomEnd = 0.dp
+        ),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.94f),
+        shadowElevation = 8.dp
+    ) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            val dragState = remember {
+                object {
+                    var lastX = 0f
+                    var lastY = 0f
+                }
+            }
+
+            // 拖曳控制區域
+            AndroidView(
+                factory = { ctx -> android.view.View(ctx) },
+                update = { view ->
+                    view.setOnTouchListener { _, event ->
+                        when (event.actionMasked) {
+                            android.view.MotionEvent.ACTION_DOWN -> {
+                                dragState.lastX = event.rawX
+                                dragState.lastY = event.rawY
+                                true
+                            }
+                            android.view.MotionEvent.ACTION_MOVE -> {
+                                val dx = event.rawX - dragState.lastX
+                                val dy = event.rawY - dragState.lastY
+                                onMove(dx, dy)
+                                dragState.lastX = event.rawX
+                                dragState.lastY = event.rawY
+                                true
+                            }
+                            else -> false
+                        }
+                    }
+                },
+                modifier = Modifier.fillMaxSize()
+            )
+
+            // 縮放控制區域 (中間膠囊按鈕)
+            val resizeState = remember {
+                object {
+                    var lastY = 0f
+                    var initialY = 0f
+                    var isDragging = false
+                }
+            }
+
+            Box(
+                modifier = Modifier
+                    .width(80.dp)
+                    .fillMaxHeight(),
+                contentAlignment = Alignment.Center
+            ) {
+                AndroidView(
+                    factory = { ctx -> android.view.View(ctx) },
+                    update = { view ->
+                        view.setOnTouchListener { _, event ->
+                            when (event.actionMasked) {
+                                android.view.MotionEvent.ACTION_DOWN -> {
+                                    isHoveringHandle = true
+                                    resizeState.initialY = event.rawX // 用 rawX 是對的，因為我們只需要獲取 Down 的起點
+                                    resizeState.initialY = event.rawY
+                                    resizeState.lastY = event.rawY
+                                    resizeState.isDragging = false
+                                    true
+                                }
+                                android.view.MotionEvent.ACTION_MOVE -> {
+                                    val currentY = event.rawY
+                                    if (!resizeState.isDragging && abs(currentY - resizeState.initialY) > touchSlop) {
+                                        resizeState.isDragging = true
+                                    }
+                                    if (resizeState.isDragging) {
+                                        val dy = currentY - resizeState.lastY
+                                        onResize(dy)
+                                    }
+                                    resizeState.lastY = currentY
+                                    true
+                                }
+                                android.view.MotionEvent.ACTION_UP, android.view.MotionEvent.ACTION_CANCEL -> {
+                                    isHoveringHandle = false
+                                    if (!resizeState.isDragging && event.actionMasked == android.view.MotionEvent.ACTION_UP) {
+                                        onToggleSize()
+                                    }
+                                    true
+                                }
+                                else -> false
+                            }
+                        }
+                    },
+                    modifier = Modifier.fillMaxSize()
+                )
+
+                Box(
+                    modifier = Modifier
+                        .size(36.dp, 5.dp)
+                        .clip(RoundedCornerShape(2.5.dp))
+                        .background(Color.White.copy(alpha = barAlpha))
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun ContentListApp(
+    state: FloatingCaptionState,
+    barHeightPx: Int
+) {
+    val captionsState by CaptionRuntimeStore.state.collectAsState()
+    val density = LocalDensity.current
+
+    // 高度多加 1 像素，用來補償 1 像素的重疊，確保總高度不變
+    val contentHeightDp = with(density) { (state.heightPx - barHeightPx + 1).toDp() }
+
+    // 因為內容視窗現在與控制條使用同一個坐標系移動，所以不需要再使用全螢幕偏移動畫！
+    // 直接讓它靠最頂部 (Alignment.TopCenter) 畫出來，隨著視窗物理移動即可，這也是零抖動的！
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.TopCenter
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(contentHeightDp),
+            shape = RoundedCornerShape(
+                topStart = 0.dp,
+                topEnd = 0.dp,
+                bottomStart = 20.dp,
+                bottomEnd = 20.dp
+            ),
+            color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.94f),
+            contentColor = MaterialTheme.colorScheme.onSurface,
+            shadowElevation = 8.dp
+        ) {
+            CaptionContentList(
+                lines = captionsState.lines,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp)
+            )
+        }
+    }
+}
+
+@Composable
+fun CaptionContentList(
+    lines: List<CaptionLine>,
+    modifier: Modifier = Modifier
+) {
+    val listState = rememberLazyListState()
+    val isAtBottom by remember { derivedStateOf { listState.firstVisibleItemIndex <= 1 } }
+
+    LaunchedEffect(lines.size) {
+        if (lines.isNotEmpty() && isAtBottom) {
+            listState.animateScrollToItem(0)
+        }
+    }
+
+    LazyColumn(
+        state = listState,
+        reverseLayout = true,
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = modifier
+            .graphicsLayer { alpha = 0.99f }
+            .drawWithContent {
+                drawContent()
+                val fadeHeight = 16.dp.toPx()
+                val topStop = (fadeHeight / size.height).coerceIn(0f, 0.5f)
+                val bottomStop = ((size.height - fadeHeight) / size.height).coerceIn(0.5f, 1f)
+                drawRect(
+                    brush = Brush.verticalGradient(
+                        0f to Color.Transparent,
+                        topStop to Color.Black,
+                        bottomStop to Color.Black,
+                        1f to Color.Transparent,
+                    ),
+                    blendMode = BlendMode.DstIn
+                )
+            }
+    ) {
+        items(lines.reversed(), key = { it.id }) { line ->
+            CaptionLineItem(
+                line = line,
+                isNewest = line.id == lines.lastOrNull()?.id
+            )
+        }
+    }
+}
+
+@Composable
+fun CaptionLineItem(line: CaptionLine, isNewest: Boolean) {
+    Column(modifier = Modifier.animateContentSize()) {
+        val style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+        if (isNewest && line.showTypewriter) {
+            TypewriterText(text = line.sourceText, style = style)
+        } else {
+            Text(text = line.sourceText, style = style)
+        }
+
+        if (line.isTranslating && line.translatedText == null) {
+            Text(
+                text = "...",
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                style = MaterialTheme.typography.bodyLarge,
+            )
+        } else if (!line.translatedText.isNullOrBlank()) {
+            if (isNewest) {
+                TypewriterText(
+                    text = line.translatedText,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+            } else {
+                Text(
+                    text = line.translatedText,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun TypewriterText(
     text: String,
     modifier: Modifier = Modifier,
     color: Color = Color.Unspecified,
@@ -395,27 +507,22 @@ private fun TypewriterText(
 
     LaunchedEffect(text) {
         val keepLength = displayedText.length.coerceAtMost(text.length)
-        // 瞬間替換前面已經顯示的長度（如果有修改，直接套用，不作動畫以免整段抽搐）
         if (displayedText != text.substring(0, keepLength)) {
             displayedText = text.substring(0, keepLength)
         }
 
         val charsToType = text.length - displayedText.length
         if (charsToType > 0) {
-            val totalDuration = charsToType.toLong() * 20L
-            val durationMs = totalDuration.coerceIn(150L, 800L)
             val frameDelay = 16L
-            val totalFrames = (durationMs / frameDelay).coerceAtLeast(1)
-            val charsPerFrame = (charsToType.toFloat() / totalFrames).coerceAtLeast(1f)
+            val durationMs = (charsToType * 20L).coerceIn(150L, 800L)
+            val charsPerFrame = (charsToType.toFloat() / (durationMs / frameDelay)).coerceAtLeast(1f)
 
             var currentLength = displayedText.length.toFloat()
             while (currentLength < text.length) {
-                kotlinx.coroutines.delay(frameDelay)
+                delay(frameDelay)
                 currentLength += charsPerFrame
                 val nextLength = currentLength.toInt().coerceAtMost(text.length)
-                if (nextLength > displayedText.length) {
-                    displayedText = text.substring(0, nextLength)
-                }
+                displayedText = text.substring(0, nextLength)
             }
         }
     }
