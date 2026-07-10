@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">Caption</string>
+    <string name="notification_channel_name">Viva Titolo</string>
+    <string name="notification_title">Live Caption funkcias</string>
+    <string name="action_stop">Haltu</string>
+    <string name="tile_label">Viva Titolo</string>
+    <string name="tile_subtitle_on">Kurante</string>
+    <string name="tile_subtitle_off">Frapu por komenci</string>
+    <string name="accessibility_service_label">Caption Alirebleco Servo</string>
+    <string name="accessibility_service_description">Permesas al Caption montri flosajn subtitolojn super aliaj apoj uzante sisteman tegmenton.</string>
+</resources>

@@ -14,6 +14,7 @@
   "permission_record": "系統音訊擷取",
   "allow": "允許",
   "permission_notification": "前景服務通知",
+  "permission_accessibility": "Caption 浮動字幕無障礙服務",
   "speech_engine": "辨識引擎",
   "engine_whisper_desc": "使用 whisper.cpp；偵測到一句話結束後整句轉錄，約延遲 3-5 秒。",
   "engine_mlkit_basic_desc": "使用 ML Kit Basic，多數 Android 12+ 裝置可用。",

@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">Caption</string>
+    <string name="notification_channel_name">Live-Untertitel</string>
+    <string name="notification_title">Live Caption läuft</string>
+    <string name="action_stop">Stopp</string>
+    <string name="tile_label">Live-Untertitel</string>
+    <string name="tile_subtitle_on">Laufen</string>
+    <string name="tile_subtitle_off">Zum Starten tippen</string>
+    <string name="accessibility_service_label">Bildunterschrift: Barrierefreiheitsdienst</string>
+    <string name="accessibility_service_description">Ermöglicht Caption die Anzeige schwebender Untertitel über anderen Apps mithilfe eines System-Overlays.</string>
+</resources>

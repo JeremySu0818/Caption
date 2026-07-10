@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">Caption</string>
+    <string name="notification_channel_name">Ливе Цаптион</string>
+    <string name="notification_title">Титл уживо је покренут</string>
+    <string name="action_stop">Стани</string>
+    <string name="tile_label">Ливе Цаптион</string>
+    <string name="tile_subtitle_on">Трчање</string>
+    <string name="tile_subtitle_off">Додирните за почетак</string>
+    <string name="accessibility_service_label">Услуга приступачности натписа</string>
+    <string name="accessibility_service_description">Дозвољава Цаптион-у да приказује плутајуће титлове преко других апликација помоћу системског преклапања.</string>
+</resources>

@@ -26,6 +26,7 @@ import com.jeremysu0818.caption.audio.InMemoryWavWriter
 import com.jeremysu0818.caption.audio.SystemAudioCapture
 import com.jeremysu0818.caption.audio.VoiceActivityDetector
 import com.jeremysu0818.caption.audio.WavFileWriter
+import com.jeremysu0818.caption.accessibility.CaptionAccessibilityService
 import com.jeremysu0818.caption.data.CaptionRuntimeStore
 import com.jeremysu0818.caption.data.SpeechEngineOption
 import com.jeremysu0818.caption.data.I18n
@@ -109,7 +110,13 @@ class CaptionCaptureService : Service() {
         isRunning = true
         CaptionTileService.requestTileRefresh(this)
 
-        val overlay = FloatingCaptionWindow(this) { stopSelf() }.also { it.show() }
+        val overlay = CaptionAccessibilityService.activeOrNull()
+            ?.createCaptionWindow { stopSelf() }
+            ?: FloatingCaptionWindow(
+                context = this,
+                onCloseRequested = { stopSelf() },
+            )
+        overlay.show()
         overlayWindow = overlay
         CaptionRuntimeStore.setRunning(I18n.getString("status_preparing"))
 

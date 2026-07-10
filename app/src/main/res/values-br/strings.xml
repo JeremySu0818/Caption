@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">Caption</string>
+    <string name="notification_channel_name">Titloù bev</string>
+    <string name="notification_title">Live Caption a zo o vont en-dro</string>
+    <string name="action_stop">Paouez</string>
+    <string name="tile_label">Titloù bev</string>
+    <string name="tile_subtitle_on">O redek</string>
+    <string name="tile_subtitle_off">Klikit evit kregiñ</string>
+    <string name="accessibility_service_label">Servij mont e darempred gant an titloù</string>
+    <string name="accessibility_service_description">Aotreañ a ra Caption da ziskouez istitloù o nijal war arloadoù all dre implijout un dreuzfollenn reizhiad.</string>
+</resources>

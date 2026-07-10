@@ -14,6 +14,7 @@
   "permission_record": "System audio capture",
   "allow": "Allow",
   "permission_notification": "Foreground service notification",
+  "permission_accessibility": "Caption accessibility service",
   "speech_engine": "Speech Engine",
   "engine_whisper_desc": "Uses whisper.cpp. Transcribes full sentences after detecting pause, delay around 3-5 seconds.",
   "engine_mlkit_basic_desc": "Uses ML Kit Basic, available on most Android 12+ devices.",

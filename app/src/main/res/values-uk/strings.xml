@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">Caption</string>
+    <string name="notification_channel_name">Живі субтитри</string>
+    <string name="notification_title">Живі субтитри запущено</string>
+    <string name="action_stop">Стоп</string>
+    <string name="tile_label">Живі субтитри</string>
+    <string name="tile_subtitle_on">Біг</string>
+    <string name="tile_subtitle_off">Торкніться, щоб почати</string>
+    <string name="accessibility_service_label">Служба доступності субтитрів</string>
+    <string name="accessibility_service_description">Дозволяє Caption відображати плаваючі субтитри поверх інших програм за допомогою системного накладання.</string>
+</resources>

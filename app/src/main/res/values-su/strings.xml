@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">Caption</string>
+    <string name="notification_channel_name">Caption Live</string>
+    <string name="notification_title">Caption langsung dijalankeun</string>
+    <string name="action_stop">Eureun</string>
+    <string name="tile_label">Caption Live</string>
+    <string name="tile_subtitle_on">Lumpat</string>
+    <string name="tile_subtitle_off">Ketok pikeun ngamimitian</string>
+    <string name="accessibility_service_label">Jasa Aksesibilitas Caption</string>
+    <string name="accessibility_service_description">Ngidinan Caption nampilkeun caption ngambang dina aplikasi anu sanés nganggo overlay sistem.</string>
+</resources>

@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">Caption</string>
+    <string name="notification_channel_name">Capsiwn Byw</string>
+    <string name="notification_title">Mae Live Caption yn rhedeg</string>
+    <string name="action_stop">Stopio</string>
+    <string name="tile_label">Capsiwn Byw</string>
+    <string name="tile_subtitle_on">Rhedeg</string>
+    <string name="tile_subtitle_off">Tapiwch i ddechrau</string>
+    <string name="accessibility_service_label">Capsiwn Gwasanaeth Hygyrchedd</string>
+    <string name="accessibility_service_description">Yn caniatáu i Caption arddangos capsiynau symudol dros apiau eraill gan ddefnyddio troshaen system.</string>
+</resources>

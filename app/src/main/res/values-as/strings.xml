@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">Caption</string>
+    <string name="notification_channel_name">লাইভ কেপচন</string>
+    <string name="notification_title">লাইভ কেপচন চলি আছে</string>
+    <string name="action_stop">বন্ধ কৰক</string>
+    <string name="tile_label">লাইভ কেপচন</string>
+    <string name="tile_subtitle_on">চলি থকা</string>
+    <string name="tile_subtitle_off">আৰম্ভ কৰিবলৈ টেপ কৰক</string>
+    <string name="accessibility_service_label">কেপচন অভিগম্যতা সেৱা</string>
+    <string name="accessibility_service_description">এটা চিস্টেম অভাৰলে ব্যৱহাৰ কৰি অন্য এপসমূহৰ ওপৰত ভাসমান কেপচনসমূহ প্ৰদৰ্শন কৰাৰ অনুমতি দিয়ে।</string>
+</resources>

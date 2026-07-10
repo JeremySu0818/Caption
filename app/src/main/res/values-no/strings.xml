@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">Caption</string>
+    <string name="notification_channel_name">Direktetekst</string>
+    <string name="notification_title">Live Caption kjører</string>
+    <string name="action_stop">Stopp</string>
+    <string name="tile_label">Direktetekst</string>
+    <string name="tile_subtitle_on">Løper</string>
+    <string name="tile_subtitle_off">Trykk for å starte</string>
+    <string name="accessibility_service_label">Bildetekst Tilgjengelighetstjeneste</string>
+    <string name="accessibility_service_description">Lar bildetekst vise flytende bildetekster over andre apper ved hjelp av et systemoverlegg.</string>
+</resources>

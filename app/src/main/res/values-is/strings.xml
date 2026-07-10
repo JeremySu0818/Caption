@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">Caption</string>
+    <string name="notification_channel_name">Texti í beinni</string>
+    <string name="notification_title">Texti í beinni er í gangi</string>
+    <string name="action_stop">Hættu</string>
+    <string name="tile_label">Texti í beinni</string>
+    <string name="tile_subtitle_on">Hlaupandi</string>
+    <string name="tile_subtitle_off">Pikkaðu til að byrja</string>
+    <string name="accessibility_service_label">Yfirskrift Aðgengisþjónusta</string>
+    <string name="accessibility_service_description">Leyfir myndatexta að birta fljótandi myndatexta yfir önnur forrit með kerfisyfirlagi.</string>
+</resources>

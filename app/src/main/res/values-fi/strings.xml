@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">Caption</string>
+    <string name="notification_channel_name">Livetekstitys</string>
+    <string name="notification_title">Livetekstitys on käynnissä</string>
+    <string name="action_stop">Pysähdy</string>
+    <string name="tile_label">Livetekstitys</string>
+    <string name="tile_subtitle_on">Juoksemassa</string>
+    <string name="tile_subtitle_off">Aloita napauttamalla</string>
+    <string name="accessibility_service_label">Kuvatekstien esteettömyyspalvelu</string>
+    <string name="accessibility_service_description">Sallii kuvatekstit näyttää kelluvat tekstitykset muiden sovellusten päällä järjestelmän peittokuvan avulla.</string>
+</resources>

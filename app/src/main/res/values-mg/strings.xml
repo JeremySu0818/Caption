@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">Caption</string>
+    <string name="notification_channel_name">Caption mivantana</string>
+    <string name="notification_title">Mandeha ny Live Caption</string>
+    <string name="action_stop">Atsaharo</string>
+    <string name="tile_label">Caption mivantana</string>
+    <string name="tile_subtitle_on">mihazakazaka</string>
+    <string name="tile_subtitle_off">Tsindrio raha hanomboka</string>
+    <string name="accessibility_service_label">Service Accessibility Caption</string>
+    <string name="accessibility_service_description">Avelao ny Caption hanehoana lohateny mitsingevana eo amin\'ny fampiharana hafa amin\'ny fampiasana overlay rafitra.</string>
+</resources>

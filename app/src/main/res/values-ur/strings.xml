@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">Caption</string>
+    <string name="notification_channel_name">لائیو کیپشن</string>
+    <string name="notification_title">لائیو کیپشن چل رہا ہے۔</string>
+    <string name="action_stop">رک جاؤ</string>
+    <string name="tile_label">لائیو کیپشن</string>
+    <string name="tile_subtitle_on">چل رہا ہے۔</string>
+    <string name="tile_subtitle_off">شروع کرنے کے لیے تھپتھپائیں۔</string>
+    <string name="accessibility_service_label">کیپشن قابل رسائی سروس</string>
+    <string name="accessibility_service_description">کیپشن کو سسٹم اوورلے کا استعمال کرتے ہوئے دیگر ایپس پر فلوٹنگ کیپشن ڈسپلے کرنے کی اجازت دیتا ہے۔</string>
+</resources>

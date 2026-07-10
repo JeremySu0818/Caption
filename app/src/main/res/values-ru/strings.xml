@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">Caption</string>
+    <string name="notification_channel_name">Живая подпись</string>
+    <string name="notification_title">Живые субтитры работают</string>
+    <string name="action_stop">Стоп</string>
+    <string name="tile_label">Живая подпись</string>
+    <string name="tile_subtitle_on">Бег</string>
+    <string name="tile_subtitle_off">Нажмите, чтобы начать</string>
+    <string name="accessibility_service_label">Служба доступности подписей</string>
+    <string name="accessibility_service_description">Позволяет Caption отображать плавающие подписи поверх других приложений с помощью системного наложения.</string>
+</resources>

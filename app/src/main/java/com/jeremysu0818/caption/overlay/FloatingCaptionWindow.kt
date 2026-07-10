@@ -104,7 +104,9 @@ private class CloseTargetState {
 
 class FloatingCaptionWindow(
     private val context: Context,
-    private val onCloseRequested: () -> Unit
+    private val onCloseRequested: () -> Unit,
+    private val windowType: Int = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+    private val contentIsTouchable: Boolean = true,
 ) {
     private val mainHandler = Handler(Looper.getMainLooper())
     private val windowManager = context.getSystemService(WindowManager::class.java)
@@ -133,6 +135,7 @@ class FloatingCaptionWindow(
             val closeTargetHeightPx = (112 * density).roundToInt()
             val minHeightPx = (screenHeightPixels / 6f).roundToInt()
             val maxHeightPx = (screenHeightPixels * 0.6f).roundToInt()
+            val maxContentHeightPx = maxHeightPx - barHeightPx + 1
 
             val initialTopY = (screenHeightPixels * 0.72f).roundToInt()
 
@@ -143,11 +146,10 @@ class FloatingCaptionWindow(
                 maxHeightPx = maxHeightPx
             )
 
-            // 視窗 1：頂部控制條 (Control Bar)，大小固定 (24dp)
             val controlParams = WindowManager.LayoutParams(
                 windowWidthPx,
                 barHeightPx,
-                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+                windowType,
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                         WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
                         WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
@@ -160,24 +162,23 @@ class FloatingCaptionWindow(
                 alpha = OverlayWindowAlpha
             }
 
-            // 視窗 2：內容字幕區 (Content Window)，高度固定為最大高度。
-            // 不使用 FLAG_NOT_TOUCHABLE，否則部分系統會把透明 overlay 的視窗 alpha 強制降到 0.8。
-            // 核心修正：我們不再讓它全螢幕，而是讓它與視窗 1 使用相同的 x/y 定位機制！
-            // 這樣 Android 系統會以完全相同的規則（包含狀態列、瀏海屏偏移）來排列這兩個視窗，徹底消除兩者之間的巨大縫隙！
+            // The content window stays at maximum height. Its visible Surface is
+            // bottom-aligned inside it, so resize never changes this window's
+            // WindowManager bounds and cannot trigger a buffer rebound.
             val contentParams = WindowManager.LayoutParams(
                 windowWidthPx,
-                maxHeightPx,
-                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+                maxContentHeightPx,
+                windowType,
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                         WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
                         WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
-                        WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                        WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS or
+                        (if (contentIsTouchable) 0 else WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE),
                 PixelFormat.TRANSLUCENT
             ).apply {
                 gravity = Gravity.TOP or Gravity.START
                 x = state.x
-                // 緊貼在控制條下方，重疊 1 像素消除 Subpixel 微小細縫
-                y = state.y + barHeightPx - 1
+                y = state.y + state.heightPx - maxContentHeightPx
                 alpha = OverlayWindowAlpha
             }
 
@@ -191,7 +192,7 @@ class FloatingCaptionWindow(
             val closeTargetParams = WindowManager.LayoutParams(
                 WindowManager.LayoutParams.MATCH_PARENT,
                 closeTargetHeightPx,
-                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+                windowType,
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                         WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
                         WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
@@ -208,7 +209,6 @@ class FloatingCaptionWindow(
                 setContent {
                     CaptionTheme {
                         ControlBarApp(
-                            state = state,
                             onMove = { dx, dy ->
                                 state.x += dx.roundToInt()
                                 state.y += dy.roundToInt()
@@ -218,7 +218,7 @@ class FloatingCaptionWindow(
                                 windowManager.updateViewLayout(controlView, controlParams)
 
                                 contentParams.x = state.x
-                                contentParams.y = state.y + barHeightPx - 1
+                                contentParams.y = state.y + state.heightPx - maxContentHeightPx
                                 windowManager.updateViewLayout(contentView, contentParams)
 
                                 // Use the control bar's position rather than the
@@ -248,9 +248,6 @@ class FloatingCaptionWindow(
                                 
                                 controlParams.y = state.y
                                 windowManager.updateViewLayout(controlView, controlParams)
-
-                                contentParams.y = state.y + barHeightPx - 1
-                                windowManager.updateViewLayout(contentView, contentParams)
                             },
                             onToggleSize = {
                                 val nextHeight = if (state.heightPx < (state.minHeightPx + state.maxHeightPx) / 2) {
@@ -264,9 +261,6 @@ class FloatingCaptionWindow(
                                 
                                 controlParams.y = state.y
                                 windowManager.updateViewLayout(controlView, controlParams)
-
-                                contentParams.y = state.y + barHeightPx - 1
-                                windowManager.updateViewLayout(contentView, contentParams)
                             }
                         )
                     }
@@ -281,7 +275,7 @@ class FloatingCaptionWindow(
                     CaptionTheme {
                         ContentListApp(
                             state = state,
-                            barHeightPx = barHeightPx
+                            barHeightPx = barHeightPx,
                         )
                     }
                 }
@@ -319,8 +313,8 @@ class FloatingCaptionWindow(
             controlView?.let { windowManager.removeView(it) }
             closeTargetView?.let { windowManager.removeView(it) }
             contentView?.let { windowManager.removeView(it) }
-            contentView = null
             controlView = null
+            contentView = null
             closeTargetView = null
             controlLifecycle?.destroy()
             contentLifecycle?.destroy()
@@ -340,63 +334,91 @@ class FloatingCaptionWindow(
 
 @Composable
 fun ControlBarApp(
-    state: FloatingCaptionState,
     onMove: (Float, Float) -> Unit,
     onDragEnded: () -> Unit,
     onDragCancelled: () -> Unit,
     onResize: (Float) -> Unit,
-    onToggleSize: () -> Unit
+    onToggleSize: () -> Unit,
 ) {
     var isHoveringHandle by remember { mutableStateOf(false) }
     val barAlpha by animateFloatAsState(if (isHoveringHandle) 0.8f else 0.3f, label = "Alpha")
     val touchSlop = androidx.compose.ui.platform.LocalViewConfiguration.current.touchSlop
+    val resizeHandleTouchWidthPx = with(LocalDensity.current) { 80.dp.toPx() }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
-        shape = RoundedCornerShape(
-            topStart = 20.dp,
-            topEnd = 20.dp,
-            bottomStart = 0.dp,
-            bottomEnd = 0.dp
-        ),
+        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
         color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.94f),
     ) {
         Box(
             modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
+            contentAlignment = Alignment.Center,
         ) {
-            val dragState = remember {
+            // Keep all touch handling in one View. Previously, the full-width drag
+            // view and the centered resize view overlapped, allowing a resize
+            // gesture to update both the panel height and the window position.
+            val gestureState = remember {
                 object {
                     var lastX = 0f
                     var lastY = 0f
+                    var initialY = 0f
+                    var isResizeGesture = false
+                    var isDragging = false
                 }
             }
 
-            // 拖曳控制區域
             AndroidView(
                 factory = { ctx -> android.view.View(ctx) },
                 update = { view ->
                     view.setOnTouchListener { _, event ->
                         when (event.actionMasked) {
                             android.view.MotionEvent.ACTION_DOWN -> {
-                                dragState.lastX = event.rawX
-                                dragState.lastY = event.rawY
+                                gestureState.lastX = event.rawX
+                                gestureState.lastY = event.rawY
+                                gestureState.initialY = event.rawY
+                                gestureState.isResizeGesture =
+                                    abs(event.x - view.width / 2f) <= resizeHandleTouchWidthPx / 2f
+                                gestureState.isDragging = false
+                                isHoveringHandle = gestureState.isResizeGesture
                                 true
                             }
                             android.view.MotionEvent.ACTION_MOVE -> {
-                                val dx = event.rawX - dragState.lastX
-                                val dy = event.rawY - dragState.lastY
-                                onMove(dx, dy)
-                                dragState.lastX = event.rawX
-                                dragState.lastY = event.rawY
+                                if (gestureState.isResizeGesture) {
+                                    val currentY = event.rawY
+                                    if (!gestureState.isDragging &&
+                                        abs(currentY - gestureState.initialY) > touchSlop
+                                    ) {
+                                        gestureState.isDragging = true
+                                    }
+                                    if (gestureState.isDragging) {
+                                        onResize(currentY - gestureState.lastY)
+                                    }
+                                    gestureState.lastY = currentY
+                                } else {
+                                    onMove(
+                                        event.rawX - gestureState.lastX,
+                                        event.rawY - gestureState.lastY
+                                    )
+                                    gestureState.lastX = event.rawX
+                                    gestureState.lastY = event.rawY
+                                }
                                 true
                             }
                             android.view.MotionEvent.ACTION_UP -> {
-                                onDragEnded()
+                                if (gestureState.isResizeGesture) {
+                                    isHoveringHandle = false
+                                    if (!gestureState.isDragging) onToggleSize()
+                                } else {
+                                    onDragEnded()
+                                }
                                 true
                             }
                             android.view.MotionEvent.ACTION_CANCEL -> {
-                                onDragCancelled()
+                                if (gestureState.isResizeGesture) {
+                                    isHoveringHandle = false
+                                } else {
+                                    onDragCancelled()
+                                }
                                 true
                             }
                             else -> true
@@ -406,71 +428,17 @@ fun ControlBarApp(
                 modifier = Modifier.fillMaxSize()
             )
 
-            // 縮放控制區域 (中間膠囊按鈕)
-            val resizeState = remember {
-                object {
-                    var lastY = 0f
-                    var initialY = 0f
-                    var isDragging = false
-                }
-            }
-
+            // 縮放桿僅負責顯示；手勢由上方單一觸控層依按下位置判斷。
             Box(
                 modifier = Modifier
-                    .width(80.dp)
-                    .fillMaxHeight(),
-                contentAlignment = Alignment.Center
-            ) {
-                AndroidView(
-                    factory = { ctx -> android.view.View(ctx) },
-                    update = { view ->
-                        view.setOnTouchListener { _, event ->
-                            when (event.actionMasked) {
-                                android.view.MotionEvent.ACTION_DOWN -> {
-                                    isHoveringHandle = true
-                                    resizeState.initialY = event.rawX // 用 rawX 是對的，因為我們只需要獲取 Down 的起點
-                                    resizeState.initialY = event.rawY
-                                    resizeState.lastY = event.rawY
-                                    resizeState.isDragging = false
-                                    true
-                                }
-                                android.view.MotionEvent.ACTION_MOVE -> {
-                                    val currentY = event.rawY
-                                    if (!resizeState.isDragging && abs(currentY - resizeState.initialY) > touchSlop) {
-                                        resizeState.isDragging = true
-                                    }
-                                    if (resizeState.isDragging) {
-                                        val dy = currentY - resizeState.lastY
-                                        onResize(dy)
-                                    }
-                                    resizeState.lastY = currentY
-                                    true
-                                }
-                                android.view.MotionEvent.ACTION_UP, android.view.MotionEvent.ACTION_CANCEL -> {
-                                    isHoveringHandle = false
-                                    if (!resizeState.isDragging && event.actionMasked == android.view.MotionEvent.ACTION_UP) {
-                                        onToggleSize()
-                                    }
-                                    true
-                                }
-                                else -> false
-                            }
-                        }
-                    },
-                    modifier = Modifier.fillMaxSize()
-                )
-
-                Box(
-                    modifier = Modifier
-                        .size(36.dp, 5.dp)
-                        // Center the handle between the window top and the
-                        // point where the top caption fade starts.
-                        .offset(y = 5.dp)
-                        .zIndex(1f)
-                        .clip(RoundedCornerShape(2.5.dp))
-                        .background(Color.White.copy(alpha = barAlpha))
-                )
-            }
+                    .size(36.dp, 5.dp)
+                    // Center the handle between the window top and the
+                    // point where the top caption fade starts.
+                    .offset(y = 5.dp)
+                    .zIndex(1f)
+                    .clip(RoundedCornerShape(2.5.dp))
+                    .background(Color.White.copy(alpha = barAlpha))
+            )
         }
     }
 }
@@ -503,30 +471,21 @@ private fun CloseTargetApp(state: CloseTargetState) {
 @Composable
 fun ContentListApp(
     state: FloatingCaptionState,
-    barHeightPx: Int
+    barHeightPx: Int,
 ) {
     val captionsState by CaptionRuntimeStore.state.collectAsState()
     val density = LocalDensity.current
-
-    // 高度多加 1 像素，用來補償 1 像素的重疊，確保總高度不變
     val contentHeightDp = with(density) { (state.heightPx - barHeightPx + 1).toDp() }
 
-    // 因為內容視窗現在與控制條使用同一個坐標系移動，所以不需要再使用全螢幕偏移動畫！
-    // 直接讓它靠最頂部 (Alignment.TopCenter) 畫出來，隨著視窗物理移動即可，這也是零抖動的！
     Box(
         modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.TopCenter
+        contentAlignment = Alignment.BottomCenter,
     ) {
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(contentHeightDp),
-            shape = RoundedCornerShape(
-                topStart = 0.dp,
-                topEnd = 0.dp,
-                bottomStart = 20.dp,
-                bottomEnd = 20.dp
-            ),
+            shape = RoundedCornerShape(bottomStart = 20.dp, bottomEnd = 20.dp),
             color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.94f),
             contentColor = MaterialTheme.colorScheme.onSurface,
         ) {
@@ -534,7 +493,7 @@ fun ContentListApp(
                 lines = captionsState.lines,
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
             )
         }
     }

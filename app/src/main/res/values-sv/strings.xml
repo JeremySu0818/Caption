@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">Caption</string>
+    <string name="notification_channel_name">Live Caption</string>
+    <string name="notification_title">Live Caption körs</string>
+    <string name="action_stop">Sluta</string>
+    <string name="tile_label">Live Caption</string>
+    <string name="tile_subtitle_on">Löpning</string>
+    <string name="tile_subtitle_off">Tryck för att starta</string>
+    <string name="accessibility_service_label">Bildtext Tillgänglighetstjänst</string>
+    <string name="accessibility_service_description">Tillåter bildtext att visa flytande bildtexter över andra appar med hjälp av en systemöverlagring.</string>
+</resources>

@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">Caption</string>
+    <string name="notification_channel_name">Vivamus Caption</string>
+    <string name="notification_title">Vivamus Caption currit</string>
+    <string name="action_stop">Subsisto</string>
+    <string name="tile_label">Vivamus Caption</string>
+    <string name="tile_subtitle_on">Running</string>
+    <string name="tile_subtitle_off">ICTUS incipere</string>
+    <string name="accessibility_service_label">Caption Accessibility Service</string>
+    <string name="accessibility_service_description">Captionem permittit ut captiones fluitantiae super alias apps utentes systema operimento ostendant.</string>
+</resources>

@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">Caption</string>
+    <string name="notification_channel_name">Fotheideal Beo</string>
+    <string name="notification_title">Tá Live Caption ar siúl</string>
+    <string name="action_stop">Stop</string>
+    <string name="tile_label">Fotheideal Beo</string>
+    <string name="tile_subtitle_on">Ag rith</string>
+    <string name="tile_subtitle_off">Tapáil chun tosú</string>
+    <string name="accessibility_service_label">Teideal Seirbhís Inrochtaineachta</string>
+    <string name="accessibility_service_description">Ligeann sé do Fhotheideal fotheidil ar snámh a thaispeáint thar aipeanna eile ag baint úsáide as forleagan córais.</string>
+</resources>

@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">Caption</string>
+    <string name="notification_channel_name">Titrat e drejtpërdrejtë</string>
+    <string name="notification_title">Titrat e drejtpërdrejtë po ekzekutohen</string>
+    <string name="action_stop">Ndalo</string>
+    <string name="tile_label">Titrat e drejtpërdrejtë</string>
+    <string name="tile_subtitle_on">Vrapimi</string>
+    <string name="tile_subtitle_off">Prekni për të filluar</string>
+    <string name="accessibility_service_label">Shërbimi i aksesueshmërisë së titrave</string>
+    <string name="accessibility_service_description">Lejon Caption të shfaqë titrat lundrues mbi aplikacionet e tjera duke përdorur një mbivendosje të sistemit.</string>
+</resources>

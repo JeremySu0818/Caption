@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">Caption</string>
+    <string name="notification_channel_name">Сарлавҳаи зинда</string>
+    <string name="notification_title">Сарлавҳаи зинда иҷро мешавад</string>
+    <string name="action_stop">Истед</string>
+    <string name="tile_label">Сарлавҳаи зинда</string>
+    <string name="tile_subtitle_on">Давидан</string>
+    <string name="tile_subtitle_off">Барои оғоз кардан клик кунед</string>
+    <string name="accessibility_service_label">Хидмати дастрасии сарлавҳа</string>
+    <string name="accessibility_service_description">Ба Caption имкон медиҳад, ки бо истифода аз қабати система сарлавҳаҳои шинокунандаро дар болои дигар барномаҳо намоиш диҳад.</string>
+</resources>

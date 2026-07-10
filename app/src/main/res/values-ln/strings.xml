@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">Caption</string>
+    <string name="notification_channel_name">Caption en direct</string>
+    <string name="notification_title">Live Caption ezali kosala</string>
+    <string name="action_stop">Botika</string>
+    <string name="tile_label">Caption en direct</string>
+    <string name="tile_subtitle_on">Kokima mbangu</string>
+    <string name="tile_subtitle_off">Finá mpo na kobanda</string>
+    <string name="accessibility_service_label">Service ya accèsibilité ya ba caption</string>
+    <string name="accessibility_service_description">Epesi nzela na Caption kolakisa ba captions flottantes likolo ya ba apps mosusu na kosalelaka superposition ya système.</string>
+</resources>

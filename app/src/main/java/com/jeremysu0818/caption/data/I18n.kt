@@ -17,11 +17,13 @@ object I18n {
     val currentLocale: StateFlow<String> = _currentLocale.asStateFlow()
 
     private var translations = JSONObject()
+    private var fallbackTranslations = JSONObject()
     private lateinit var appContext: Context
     private val rePlaceholder = Regex("\\{[^}]+\\}")
 
     fun init(context: Context, initialLocale: String) {
         appContext = context.applicationContext
+        loadFallbackTranslations()
         setLocale(initialLocale)
     }
 
@@ -71,6 +73,20 @@ object I18n {
         }
     }
 
+    private fun loadFallbackTranslations() {
+        try {
+            appContext.assets.open("locales/en.json").use { inputStream ->
+                val size = inputStream.available()
+                val buffer = ByteArray(size)
+                inputStream.read(buffer)
+                val jsonStr = String(buffer, Charsets.UTF_8)
+                fallbackTranslations = JSONObject(jsonStr)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
     private fun loadTranslations(locale: String) {
         try {
             appContext.assets.open("locales/$locale.json").use { inputStream ->
@@ -91,12 +107,12 @@ object I18n {
 
     fun getString(key: String): String {
         return if (::appContext.isInitialized) {
-            translations.optString(key, key)
+            translations.optString(key, fallbackTranslations.optString(key, key))
         } else {
             key
         }
     }
-
+}
     fun getString(key: String, vararg args: Any): String {
         val raw = getString(key)
         return try {

@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">Caption</string>
+    <string name="notification_channel_name">Kapepa ola</string>
+    <string name="notification_title">Ke holo nei ka Caption Live</string>
+    <string name="action_stop">Kāohi</string>
+    <string name="tile_label">Kapepa ola</string>
+    <string name="tile_subtitle_on">Ke holo nei</string>
+    <string name="tile_subtitle_off">Kaomi e hoʻomaka</string>
+    <string name="accessibility_service_label">ʻO ka lawelawe ʻana i ka Caption Accessibility Service</string>
+    <string name="accessibility_service_description">ʻAe ʻo Caption e hōʻike i nā huaʻōlelo lana ma luna o nā polokalamu ʻē aʻe me ka hoʻohana ʻana i kahi uhi ʻōnaehana.</string>
+</resources>

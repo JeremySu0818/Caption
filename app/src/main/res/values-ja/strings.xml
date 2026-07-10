@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">Caption</string>
+    <string name="notification_channel_name">ライブキャプション</string>
+    <string name="notification_title">ライブキャプションが実行中です</string>
+    <string name="action_stop">停止</string>
+    <string name="tile_label">ライブキャプション</string>
+    <string name="tile_subtitle_on">ランニング</string>
+    <string name="tile_subtitle_off">タップして開始</string>
+    <string name="accessibility_service_label">キャプション アクセシビリティ サービス</string>
+    <string name="accessibility_service_description">システム オーバーレイを使用して、キャプションが他のアプリの上にフローティング キャプションを表示できるようにします。</string>
+</resources>

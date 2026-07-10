@@ -2,6 +2,8 @@ package com.jeremysu0818.caption
 
 import android.Manifest
 import android.app.Activity
+import android.accessibilityservice.AccessibilityServiceInfo
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -9,6 +11,7 @@ import android.media.projection.MediaProjectionManager
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.view.accessibility.AccessibilityManager
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -84,6 +87,7 @@ import com.jeremysu0818.caption.data.SpeechEngineOption
 import com.jeremysu0818.caption.data.WhisperModelOption
 import com.jeremysu0818.caption.data.I18n
 import com.jeremysu0818.caption.data.t
+import com.jeremysu0818.caption.accessibility.CaptionAccessibilityService
 import com.jeremysu0818.caption.service.CaptionCaptureService
 import com.jeremysu0818.caption.ui.theme.CaptionTheme
 import com.jeremysu0818.caption.whisper.ModelDownloadState
@@ -148,6 +152,7 @@ private fun CaptionApp(
     var overlayPrompted by remember { mutableStateOf(false) }
     var recordPrompted by remember { mutableStateOf(false) }
     var notificationPrompted by remember { mutableStateOf(false) }
+    var accessibilityPrompted by remember { mutableStateOf(false) }
     var isMlKitAdvancedAvailable by remember { mutableStateOf<Boolean?>(null) }
     var downloadJob by remember { mutableStateOf<Job?>(null) }
 
@@ -163,6 +168,12 @@ private fun CaptionApp(
     }
 
     val overlaySettingsLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult(),
+    ) {
+        permissionRefresh++
+    }
+
+    val accessibilitySettingsLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult(),
     ) {
         permissionRefresh++
@@ -198,6 +209,9 @@ private fun CaptionApp(
         Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
             context.hasPermission(Manifest.permission.POST_NOTIFICATIONS)
     }
+    val accessibilityGranted = remember(resumeCount, permissionRefresh) {
+        context.isCaptionAccessibilityServiceEnabled()
+    }
 
     LaunchedEffect(settings.model) {
         CaptionGraph.modelRepository.refresh(settings.model)
@@ -224,6 +238,7 @@ private fun CaptionApp(
             overlayPrompted = false
             recordPrompted = false
             notificationPrompted = false
+            accessibilityPrompted = false
         }
     }
 
@@ -232,11 +247,19 @@ private fun CaptionApp(
         overlayGranted,
         recordGranted,
         notificationGranted,
+        accessibilityGranted,
         permissionRefresh,
         resumeCount,
     ) {
         if (!pendingStart) return@LaunchedEffect
         when {
+            !accessibilityGranted -> {
+                if (!accessibilityPrompted) {
+                    accessibilityPrompted = true
+                    accessibilitySettingsLauncher.launch(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+                }
+            }
+
             !overlayGranted -> {
                 if (!overlayPrompted) {
                     overlayPrompted = true
@@ -290,12 +313,13 @@ private fun CaptionApp(
             ControlCenterCard(
                 runtimeState = runtimeState,
                 isRunning = runtimeState.isRunning,
-                canStart = overlayGranted && recordGranted,
+                canStart = accessibilityGranted && overlayGranted && recordGranted,
                 onStart = onStartRequested,
                 onStop = { CaptionCaptureService.stop(context) }
             )
 
-            val allPermissionsGranted = overlayGranted && recordGranted && notificationGranted
+            val allPermissionsGranted =
+                accessibilityGranted && overlayGranted && recordGranted && notificationGranted
             AnimatedVisibility(
                 visible = !allPermissionsGranted,
                 enter = expandVertically() + fadeIn(),
@@ -305,6 +329,11 @@ private fun CaptionApp(
                     overlayGranted = overlayGranted,
                     recordGranted = recordGranted,
                     notificationGranted = notificationGranted,
+                    accessibilityGranted = accessibilityGranted,
+                    onOpenAccessibilitySettings = {
+                        accessibilityPrompted = true
+                        accessibilitySettingsLauncher.launch(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+                    },
                     onOpenOverlaySettings = {
                         overlayPrompted = true
                         overlaySettingsLauncher.launch(context.overlaySettingsIntent())
@@ -487,7 +516,9 @@ private fun PermissionAlertCard(
     overlayGranted: Boolean,
     recordGranted: Boolean,
     notificationGranted: Boolean,
+    accessibilityGranted: Boolean,
     onOpenOverlaySettings: () -> Unit,
+    onOpenAccessibilitySettings: () -> Unit,
     onRequestRecord: () -> Unit,
     onRequestNotifications: () -> Unit,
 ) {
@@ -506,7 +537,14 @@ private fun PermissionAlertCard(
         ) {
             Text(t("permission_required"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Text(t("permission_reason"), style = MaterialTheme.typography.bodyMedium)
-            
+
+            if (!accessibilityGranted) {
+                PermissionRow(
+                    label = t("permission_accessibility"),
+                    actionText = t("open_settings"),
+                    onAction = onOpenAccessibilitySettings,
+                )
+            }
             if (!overlayGranted) {
                 PermissionRow(
                     label = t("permission_overlay"),
@@ -904,6 +942,16 @@ private fun Context.overlaySettingsIntent(): Intent =
         Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
         "package:$packageName".toUri(),
     )
+
+private fun Context.isCaptionAccessibilityServiceEnabled(): Boolean {
+    val captionService = ComponentName(this, CaptionAccessibilityService::class.java)
+    return getSystemService(AccessibilityManager::class.java)
+        .getEnabledAccessibilityServiceList(AccessibilityServiceInfo.FEEDBACK_ALL_MASK)
+        .any { service ->
+            val serviceInfo = service.resolveInfo.serviceInfo
+            ComponentName(serviceInfo.packageName, serviceInfo.name) == captionService
+        }
+}
 
 private fun Float.asPercent(): String = "${(this * 100).toInt().coerceIn(0, 100)}%"
 

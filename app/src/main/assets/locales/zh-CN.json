@@ -14,6 +14,7 @@
   "permission_record": "系统音频截取",
   "allow": "允许",
   "permission_notification": "前台服务通知",
+  "permission_accessibility": "Caption 浮动字幕无障碍服务",
   "speech_engine": "识别引擎",
   "engine_whisper_desc": "使用 whisper.cpp；检测到一句话结束后整句转录，约延迟 3-5 秒。",
   "engine_mlkit_basic_desc": "使用 ML Kit Basic，多数 Android 12+ 设备可用。",

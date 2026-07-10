@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">Caption</string>
+    <string name="notification_channel_name">တိုက်ရိုက်စာတန်း</string>
+    <string name="notification_title">တိုက်ရိုက်စာတန်းကို လုပ်ဆောင်နေပါသည်။</string>
+    <string name="action_stop">ရပ်လိုက်ပါ။</string>
+    <string name="tile_label">တိုက်ရိုက်စာတန်း</string>
+    <string name="tile_subtitle_on">ပြေးသည်။</string>
+    <string name="tile_subtitle_off">စတင်ရန် တို့ပါ။</string>
+    <string name="accessibility_service_label">စာတန်း သုံးစွဲနိုင်မှု ဝန်ဆောင်မှု</string>
+    <string name="accessibility_service_description">စာတန်းကို စနစ်ထပ်ဆင့်သုံး၍ အခြားအက်ပ်များပေါ်တွင် ရေပေါ်စာတန်းများကို ပြသခွင့်ပြုပါ။</string>
+</resources>

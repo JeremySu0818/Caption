@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">Caption</string>
+    <string name="notification_channel_name">Subtítulos en directo</string>
+    <string name="notification_title">Subtítulos en directo estase a executar</string>
+    <string name="action_stop">Pare</string>
+    <string name="tile_label">Subtítulos en directo</string>
+    <string name="tile_subtitle_on">Correndo</string>
+    <string name="tile_subtitle_off">Toca para comezar</string>
+    <string name="accessibility_service_label">Servizo de Accesibilidade de Subtítulos</string>
+    <string name="accessibility_service_description">Permite que Caption amose subtítulos flotantes sobre outras aplicacións mediante unha superposición do sistema.</string>
+</resources>
