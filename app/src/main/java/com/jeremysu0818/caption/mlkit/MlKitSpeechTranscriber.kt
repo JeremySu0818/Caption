@@ -35,6 +35,15 @@ class MlKitSpeechTranscriber {
         isEngineAvailable(languageTag, SpeechEngineOption.MLKIT_ADVANCED)
     }
 
+    suspend fun isModelReady(languageTag: String, engine: SpeechEngineOption): Boolean = mutex.withLock {
+        val localeTag = CaptionLanguages.mlKitSpeechLocale(languageTag, engine) ?: return@withLock false
+        val mode = when (engine) {
+            SpeechEngineOption.MLKIT_ADVANCED -> SpeechRecognizerOptions.Mode.MODE_ADVANCED
+            else -> SpeechRecognizerOptions.Mode.MODE_BASIC
+        }
+        recognizerFor(Locale.forLanguageTag(localeTag), mode).checkStatus() == FeatureStatus.AVAILABLE
+    }
+
     suspend fun transcribe(
         samples: ShortArray,
         languageTag: String,

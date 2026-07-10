@@ -10,6 +10,8 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.media.projection.MediaProjection
 import android.media.projection.MediaProjectionManager
 import android.os.Handler
@@ -111,10 +113,7 @@ class CaptionCaptureService : Service() {
 
         val overlay = CaptionAccessibilityService.activeOrNull()
             ?.createCaptionWindow { stopSelf() }
-            ?: FloatingCaptionWindow(
-                context = this,
-                onCloseRequested = { stopSelf() },
-            )
+            ?: throw SecurityException(I18n.getString("error_accessibility_service_unavailable"))
         overlay.show()
         overlayWindow = overlay
         CaptionRuntimeStore.setRunning(I18n.getString("status_preparing"))
@@ -125,7 +124,20 @@ class CaptionCaptureService : Service() {
                 val projection = createMediaProjection(resultCode, resultData)
                 val settingsAtStart = CaptionGraph.preferences.settings.value
                 val modelOption = settingsAtStart.model
+                if (
+                    settingsAtStart.speechEngine != SpeechEngineOption.WHISPER &&
+                    !hasInternetConnection() &&
+                    !CaptionGraph.mlKitSpeechTranscriber.isModelReady(
+                        settingsAtStart.sourceLanguageTag,
+                        settingsAtStart.speechEngine,
+                    )
+                ) {
+                    throw IllegalStateException(I18n.getString("error_model_download_requires_network"))
+                }
                 val modelFile = if (settingsAtStart.speechEngine == SpeechEngineOption.WHISPER) {
+                    if (!CaptionGraph.modelRepository.modelFile(modelOption).exists() && !hasInternetConnection()) {
+                        throw IllegalStateException(I18n.getString("error_model_download_requires_network"))
+                    }
                     val downloadStatusJob = launch {
                         CaptionGraph.modelRepository.downloadState.collectLatest { state ->
                             if (state.model == modelOption && state.isDownloading) {
@@ -452,6 +464,14 @@ class CaptionCaptureService : Service() {
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             throw SecurityException(I18n.getString("error_no_record"))
         }
+    }
+
+    private fun hasInternetConnection(): Boolean {
+        val connectivityManager = getSystemService(ConnectivityManager::class.java)
+        val network = connectivityManager.activeNetwork ?: return false
+        val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
+        return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+            capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
     }
 
     private fun stopSession(status: String, stopProjection: Boolean, removeForeground: Boolean = true) {

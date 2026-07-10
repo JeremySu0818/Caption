@@ -61,6 +61,8 @@
   "model_downloading_status": "模型下载中 {progress} · {size} · {speed}",
   "error_checksum_failed": "模型校验失败：{model} 的 SHA-1 不符合官方文件。",
   "error_download_failed": "模型下载失败",
+  "error_accessibility_service_unavailable": "Caption 浮动字幕无障碍服务尚未连接。请稍候再试一次。",
+  "error_model_download_requires_network": "语音模型尚未下载。请连上网络后再试一次。",
   "error_http": "模型下载 HTTP {code}",
   "error_sha1_mismatch": "SHA-1 不符，预期 {expected}，实际 {actual}",
   "mlkit_download_title": "下载 {engine} 语音模型",

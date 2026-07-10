@@ -212,7 +212,7 @@ private fun CaptionApp(
     val accessibilityGranted = remember(resumeCount, permissionRefresh) {
         context.isCaptionAccessibilityServiceEnabled()
     }
-
+    val accessibilityConnected by CaptionAccessibilityService.isConnected.collectAsState()
     LaunchedEffect(settings.model) {
         CaptionGraph.modelRepository.refresh(settings.model)
     }
@@ -248,6 +248,7 @@ private fun CaptionApp(
         recordGranted,
         notificationGranted,
         accessibilityGranted,
+        accessibilityConnected,
         permissionRefresh,
         resumeCount,
     ) {
@@ -258,6 +259,11 @@ private fun CaptionApp(
                     accessibilityPrompted = true
                     accessibilitySettingsLauncher.launch(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
                 }
+            }
+
+            !accessibilityConnected -> {
+                pendingStart = false
+                CaptionGraph.runtimeStore.setError(I18n.getString("error_accessibility_service_unavailable"))
             }
 
             !overlayGranted -> {
@@ -313,7 +319,7 @@ private fun CaptionApp(
             ControlCenterCard(
                 runtimeState = runtimeState,
                 isRunning = runtimeState.isRunning,
-                canStart = accessibilityGranted && overlayGranted && recordGranted,
+                canStart = accessibilityGranted && accessibilityConnected && overlayGranted && recordGranted,
                 onStart = onStartRequested,
                 onStop = { CaptionCaptureService.stop(context) }
             )

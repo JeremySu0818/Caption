@@ -6,6 +6,7 @@ import android.graphics.PixelFormat
 import android.os.Handler
 import android.os.Looper
 import android.view.Gravity
+import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
@@ -98,6 +99,10 @@ private class CloseTargetState {
     var isVisible by mutableStateOf(false)
     var isActive by mutableStateOf(false)
 
+    fun show() {
+        isVisible = true
+    }
+
     fun hide() {
         isVisible = false
         isActive = false
@@ -135,6 +140,9 @@ class FloatingCaptionWindow(
 
             val barHeightPx = (16 * density).roundToInt()
             val closeTargetHeightPx = (112 * density).roundToInt()
+            val closeCapsuleWidthPx = (128 * density).roundToInt()
+            val closeCapsuleHeightPx = (48 * density).roundToInt()
+            val closeCapsuleBottomMarginPx = (20 * density).roundToInt()
             val minHeightPx = (screenHeightPixels / 6f).roundToInt()
             val maxHeightPx = (screenHeightPixels * 0.6f).roundToInt()
             val maxContentHeightPx = maxHeightPx - barHeightPx + 1
@@ -238,7 +246,10 @@ class FloatingCaptionWindow(
                 setContent {
                     CaptionTheme {
                         ControlBarApp(
-                            onMove = { dx, dy ->
+                            onDragStarted = {
+                                closeTargetState.show()
+                            },
+                            onMove = { dx, dy, touchX, touchY ->
                                 state.x += dx.roundToInt()
                                 state.y += dy.roundToInt()
                                 
@@ -255,9 +266,21 @@ class FloatingCaptionWindow(
 
 
 
-                                val isOverCloseTarget =
-                                    state.y + barHeightPx >= screenHeightPixels - closeTargetHeightPx
-                                closeTargetState.isVisible = isOverCloseTarget
+                                val capsuleLeft = (screenWidthPixels - closeCapsuleWidthPx) / 2f
+                                val capsuleTop = (
+                                    screenHeightPixels - closeCapsuleBottomMarginPx - closeCapsuleHeightPx
+                                    ).toFloat()
+                                val isOverCloseTarget = isPointInsideCapsule(
+                                    x = touchX,
+                                    y = touchY,
+                                    left = capsuleLeft,
+                                    top = capsuleTop,
+                                    width = closeCapsuleWidthPx.toFloat(),
+                                    height = closeCapsuleHeightPx.toFloat(),
+                                )
+                                if (isOverCloseTarget && !closeTargetState.isActive) {
+                                    closeTargetView?.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                                }
                                 closeTargetState.isActive = isOverCloseTarget
                             },
                             onDragEnded = {
@@ -390,7 +413,8 @@ class FloatingCaptionWindow(
 
 @Composable
 fun ControlBarApp(
-    onMove: (Float, Float) -> Unit,
+    onDragStarted: () -> Unit,
+    onMove: (Float, Float, Float, Float) -> Unit,
     onDragEnded: () -> Unit,
     onDragCancelled: () -> Unit,
     onResize: (Float) -> Unit,
@@ -436,6 +460,7 @@ fun ControlBarApp(
                                     abs(event.x - view.width / 2f) <= resizeHandleTouchWidthPx / 2f
                                 gestureState.isDragging = false
                                 isHoveringHandle = gestureState.isResizeGesture
+                                if (!gestureState.isResizeGesture) onDragStarted()
                                 true
                             }
                             android.view.MotionEvent.ACTION_MOVE -> {
@@ -453,7 +478,9 @@ fun ControlBarApp(
                                 } else {
                                     onMove(
                                         event.rawX - gestureState.lastX,
-                                        event.rawY - gestureState.lastY
+                                        event.rawY - gestureState.lastY,
+                                        event.rawX,
+                                        event.rawY,
                                     )
                                     gestureState.lastX = event.rawX
                                     gestureState.lastY = event.rawY
@@ -510,17 +537,52 @@ private fun CloseTargetApp(state: CloseTargetState) {
             enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
             exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
         ) {
-            Button(
-                onClick = {},
-                modifier = Modifier.padding(bottom = 20.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.error,
-                    contentColor = MaterialTheme.colorScheme.onError,
-                ),
-            ) {
-                Text(text = t("stop"))
+            Box(modifier = Modifier.padding(bottom = 20.dp)) {
+                Button(
+                    onClick = {},
+                    modifier = Modifier
+                        .width(128.dp)
+                        .height(48.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (state.isActive) {
+                            MaterialTheme.colorScheme.error
+                        } else {
+                            MaterialTheme.colorScheme.surfaceVariant
+                        },
+                        contentColor = if (state.isActive) {
+                            MaterialTheme.colorScheme.onError
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                    ),
+                ) {
+                    Text(text = t("stop"))
+                }
             }
         }
+    }
+}
+
+private fun isPointInsideCapsule(
+    x: Float,
+    y: Float,
+    left: Float,
+    top: Float,
+    width: Float,
+    height: Float,
+): Boolean {
+    val radius = height / 2f
+    val centerY = top + radius
+    val leftCircleCenterX = left + radius
+    val rightCircleCenterX = left + width - radius
+
+    return when {
+        x in leftCircleCenterX..rightCircleCenterX && y in top..(top + height) -> true
+        x < leftCircleCenterX -> (x - leftCircleCenterX) * (x - leftCircleCenterX) +
+            (y - centerY) * (y - centerY) <= radius * radius
+        x > rightCircleCenterX -> (x - rightCircleCenterX) * (x - rightCircleCenterX) +
+            (y - centerY) * (y - centerY) <= radius * radius
+        else -> false
     }
 }
 
