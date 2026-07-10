@@ -196,9 +196,9 @@ class CaptionCaptureService : Service() {
         }
     }
 
-    // ========================================================================
-    // Whisper batch capture: high-accuracy mode with VAD sentence commits.
-    // ========================================================================
+
+
+
 
     private suspend fun runWhisperBatchCaptureLoop(
         projection: MediaProjection,
@@ -351,9 +351,9 @@ class CaptionCaptureService : Service() {
         }
     }
 
-    // ========================================================================
-    // ML Kit streaming capture loop (unchanged)
-    // ========================================================================
+
+
+
 
     private suspend fun runMlKitStreamingCaptureLoop(
         projection: MediaProjection,
@@ -408,7 +408,7 @@ class CaptionCaptureService : Service() {
                             ),
                         )
                     }
-                    // Prepare ID for the next utterance
+
                     currentLineId = UUID.randomUUID().toString()
                 },
             )
@@ -422,9 +422,9 @@ class CaptionCaptureService : Service() {
         }
     }
 
-    // ========================================================================
-    // MediaProjection helpers
-    // ========================================================================
+
+
+
 
     private fun createMediaProjection(resultCode: Int, resultData: Intent): MediaProjection {
         val manager = getSystemService(MediaProjectionManager::class.java)
@@ -478,9 +478,9 @@ class CaptionCaptureService : Service() {
         }
     }
 
-    // ========================================================================
-    // Notification helpers
-    // ========================================================================
+
+
+
 
     private fun startForegroundForProjection(status: String) {
         val notification = buildNotification(status)
@@ -532,9 +532,9 @@ class CaptionCaptureService : Service() {
         manager.createNotificationChannel(channel)
     }
 
-    // ========================================================================
-    // Utility extensions
-    // ========================================================================
+
+
+
 
     private fun Intent.projectionResultData(): Intent? =
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
@@ -574,7 +574,7 @@ class CaptionCaptureService : Service() {
             .filter { it.isNotBlank() }
             .joinToString(" ")
             .replace(Regex("\\s+"), " ")
-            // Filter out common Whisper hallucination patterns on silence
+
             .replace(Regex("^\\[.*?]\\s*$"), "")
             .replace(Regex("^\\(.*?\\)\\s*$"), "")
             .trim()

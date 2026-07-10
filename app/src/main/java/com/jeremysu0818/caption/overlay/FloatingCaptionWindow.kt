@@ -77,8 +77,8 @@ private class OverlayLifecycleOwner : LifecycleOwner, ViewModelStoreOwner, Saved
     }
 }
 
-// Keep both WindowManager layers fully opaque. The shared Compose Surface below is
-// the only place that controls the visual translucency of the floating caption.
+
+
 private const val OverlayWindowAlpha = 1f
 
 class FloatingCaptionState(
@@ -164,9 +164,9 @@ class FloatingCaptionWindow(
                 alpha = OverlayWindowAlpha
             }
 
-            // The content window stays at maximum height. Its visible Surface is
-            // bottom-aligned inside it, so resize never changes this window's
-            // WindowManager bounds and cannot trigger a buffer rebound.
+
+
+
             val contentParams = WindowManager.LayoutParams(
                 windowWidthPx,
                 maxContentHeightPx,
@@ -184,10 +184,10 @@ class FloatingCaptionWindow(
                 alpha = OverlayWindowAlpha
             }
 
-            // Only the visible caption panel may receive touches. The drawing
-            // window above is deliberately kept at max height so it remains
-            // stable while resizing; making it touchable would also make its
-            // transparent upper area block the app underneath.
+
+
+
+
             val contentInputParams = WindowManager.LayoutParams(
                 windowWidthPx,
                 state.heightPx - barHeightPx + 1,
@@ -216,8 +216,8 @@ class FloatingCaptionWindow(
             val closeTargetOwner = OverlayLifecycleOwner().apply { init() }
             val closeTargetState = CloseTargetState()
 
-            // This window is visual only, so the original control bar continues to
-            // receive the drag gesture even while it overlaps the close target.
+
+
             val closeTargetParams = WindowManager.LayoutParams(
                 WindowManager.LayoutParams.MATCH_PARENT,
                 closeTargetHeightPx,
@@ -251,10 +251,10 @@ class FloatingCaptionWindow(
                                 windowManager.updateViewLayout(contentView, contentParams)
                                 updateContentInputLayout()
 
-                                // Use the control bar's position rather than the
-                                // caption panel's bottom edge. This keeps the target
-                                // intentional instead of activating as soon as a tall
-                                // subtitle window happens to overlap it.
+
+
+
+
                                 val isOverCloseTarget =
                                     state.y + barHeightPx >= screenHeightPixels - closeTargetHeightPx
                                 closeTargetState.isVisible = isOverCloseTarget
@@ -314,10 +314,10 @@ class FloatingCaptionWindow(
             }
 
             val inputView = View(context).apply {
-                // Forward the gesture to the stable, non-touchable Compose
-                // content window. This preserves LazyColumn's own drag and
-                // fling behaviour without making the transparent part of that
-                // window intercept touches.
+
+
+
+
                 setOnTouchListener { _, event ->
                     contentView?.let { target ->
                         MotionEvent.obtain(event).also { forwarded ->
@@ -347,9 +347,9 @@ class FloatingCaptionWindow(
             windowManager.addView(tView, contentParams)
             windowManager.addView(inputView, contentInputParams)
             windowManager.addView(cView, controlParams)
-            // Add last so the close target is visually above both the caption
-            // content and its control bar. FLAG_NOT_TOUCHABLE keeps the drag
-            // gesture flowing through to the control bar underneath.
+
+
+
             windowManager.addView(closeView, closeTargetParams)
             
             controlView = cView
@@ -410,9 +410,9 @@ fun ControlBarApp(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center,
         ) {
-            // Keep all touch handling in one View. Previously, the full-width drag
-            // view and the centered resize view overlapped, allowing a resize
-            // gesture to update both the panel height and the window position.
+
+
+
             val gestureState = remember {
                 object {
                     var lastX = 0f
@@ -484,12 +484,12 @@ fun ControlBarApp(
                 modifier = Modifier.fillMaxSize()
             )
 
-            // 縮放桿僅負責顯示；手勢由上方單一觸控層依按下位置判斷。
+
             Box(
                 modifier = Modifier
                     .size(36.dp, 5.dp)
-                    // Center the handle between the window top and the
-                    // point where the top caption fade starts.
+
+
                     .offset(y = 5.dp)
                     .zIndex(1f)
                     .clip(RoundedCornerShape(2.5.dp))
@@ -577,16 +577,16 @@ fun CaptionContentList(
             .graphicsLayer { alpha = 0.99f }
             .drawWithContent {
                 drawContent()
-                // Leave a 2dp gap between the fade and the first/last line
-                // inside the list's 8dp vertical padding.
+
+
                 val fadeHeight = 6.dp.toPx()
                 val topStop = (fadeHeight / size.height).coerceIn(0f, 0.5f)
                 val bottomStop = ((size.height - fadeHeight) / size.height).coerceIn(0.5f, 1f)
                 drawRect(
                     brush = Brush.verticalGradient(
                         0f to Color.Transparent,
-                        // Keep the same 16dp fade area, but hold the text longer
-                        // before fading so the edge transition is more apparent.
+
+
                         (topStop * 0.55f) to Color.Transparent,
                         topStop to Color.Black,
                         bottomStop to Color.Black,

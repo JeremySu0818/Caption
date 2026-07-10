@@ -74,14 +74,14 @@ class VoiceActivityDetector(
             consecutiveSilenceChunks = 0
         } else {
             consecutiveSilenceChunks++
-            // Adapt noise floor only during confirmed silence
+
             if (consecutiveSilenceChunks > hangoverChunks) {
                 noiseFloorRms = noiseFloorAlpha * noiseFloorRms + (1f - noiseFloorAlpha) * rms
                 consecutiveSpeechChunks = 0
             }
         }
 
-        // Hangover: keep reporting speech for a few chunks after it ends
+
         return consecutiveSpeechChunks > 0 || consecutiveSilenceChunks <= hangoverChunks
     }
 

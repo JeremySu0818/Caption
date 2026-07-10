@@ -40,12 +40,12 @@ object I18n {
             localeTag
         }
 
-        // Try exact tag (e.g., "zh-TW")
+
         if (assetExists("locales/$tag.json")) {
             return tag
         }
 
-        // Handle generic fallback (e.g., if system is "zh-HK", map to "zh-TW" or "zh")
+
         val parsedLocale = Locale.forLanguageTag(tag)
         val lang = parsedLocale.language
         if (lang == "zh") {
@@ -98,7 +98,7 @@ object I18n {
             }
         } catch (e: Exception) {
             e.printStackTrace()
-            // Fallback to English
+
             if (locale != "en") {
                 loadTranslations("en")
             }
