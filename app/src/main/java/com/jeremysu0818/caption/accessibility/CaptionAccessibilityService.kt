@@ -25,7 +25,6 @@ class CaptionAccessibilityService : AccessibilityService() {
             context = this,
             onCloseRequested = onCloseRequested,
             windowType = WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
-            contentIsTouchable = false,
         )
 
     companion object {

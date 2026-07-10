@@ -112,7 +112,7 @@ object I18n {
             key
         }
     }
-}
+
     fun getString(key: String, vararg args: Any): String {
         val raw = getString(key)
         return try {

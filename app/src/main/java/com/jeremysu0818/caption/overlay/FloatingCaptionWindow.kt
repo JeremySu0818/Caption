@@ -6,6 +6,8 @@ import android.graphics.PixelFormat
 import android.os.Handler
 import android.os.Looper
 import android.view.Gravity
+import android.view.MotionEvent
+import android.view.View
 import android.view.WindowManager
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
@@ -106,13 +108,13 @@ class FloatingCaptionWindow(
     private val context: Context,
     private val onCloseRequested: () -> Unit,
     private val windowType: Int = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-    private val contentIsTouchable: Boolean = true,
 ) {
     private val mainHandler = Handler(Looper.getMainLooper())
     private val windowManager = context.getSystemService(WindowManager::class.java)
     
     private var controlView: ComposeView? = null
     private var contentView: ComposeView? = null
+    private var contentInputView: View? = null
     private var closeTargetView: ComposeView? = null
     
     private var controlLifecycle: OverlayLifecycleOwner? = null
@@ -173,13 +175,40 @@ class FloatingCaptionWindow(
                         WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
                         WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
                         WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS or
-                        (if (contentIsTouchable) 0 else WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE),
+                        WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
                 PixelFormat.TRANSLUCENT
             ).apply {
                 gravity = Gravity.TOP or Gravity.START
                 x = state.x
                 y = state.y + state.heightPx - maxContentHeightPx
                 alpha = OverlayWindowAlpha
+            }
+
+            // Only the visible caption panel may receive touches. The drawing
+            // window above is deliberately kept at max height so it remains
+            // stable while resizing; making it touchable would also make its
+            // transparent upper area block the app underneath.
+            val contentInputParams = WindowManager.LayoutParams(
+                windowWidthPx,
+                state.heightPx - barHeightPx + 1,
+                windowType,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                        WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
+                        WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
+                        WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                PixelFormat.TRANSLUCENT
+            ).apply {
+                gravity = Gravity.TOP or Gravity.START
+                x = state.x
+                y = state.y + barHeightPx - 1
+                alpha = OverlayWindowAlpha
+            }
+
+            fun updateContentInputLayout() {
+                contentInputParams.x = state.x
+                contentInputParams.y = state.y + barHeightPx - 1
+                contentInputParams.height = state.heightPx - barHeightPx + 1
+                contentInputView?.let { windowManager.updateViewLayout(it, contentInputParams) }
             }
 
             val controlOwner = OverlayLifecycleOwner().apply { init() }
@@ -220,6 +249,7 @@ class FloatingCaptionWindow(
                                 contentParams.x = state.x
                                 contentParams.y = state.y + state.heightPx - maxContentHeightPx
                                 windowManager.updateViewLayout(contentView, contentParams)
+                                updateContentInputLayout()
 
                                 // Use the control bar's position rather than the
                                 // caption panel's bottom edge. This keeps the target
@@ -248,6 +278,7 @@ class FloatingCaptionWindow(
                                 
                                 controlParams.y = state.y
                                 windowManager.updateViewLayout(controlView, controlParams)
+                                updateContentInputLayout()
                             },
                             onToggleSize = {
                                 val nextHeight = if (state.heightPx < (state.minHeightPx + state.maxHeightPx) / 2) {
@@ -261,6 +292,7 @@ class FloatingCaptionWindow(
                                 
                                 controlParams.y = state.y
                                 windowManager.updateViewLayout(controlView, controlParams)
+                                updateContentInputLayout()
                             }
                         )
                     }
@@ -281,6 +313,26 @@ class FloatingCaptionWindow(
                 }
             }
 
+            val inputView = View(context).apply {
+                // Forward the gesture to the stable, non-touchable Compose
+                // content window. This preserves LazyColumn's own drag and
+                // fling behaviour without making the transparent part of that
+                // window intercept touches.
+                setOnTouchListener { _, event ->
+                    contentView?.let { target ->
+                        MotionEvent.obtain(event).also { forwarded ->
+                            forwarded.offsetLocation(
+                                0f,
+                                (contentInputParams.y - contentParams.y).toFloat()
+                            )
+                            target.dispatchTouchEvent(forwarded)
+                            forwarded.recycle()
+                        }
+                    }
+                    true
+                }
+            }
+
             val closeView = ComposeView(context).apply {
                 setViewTreeLifecycleOwner(closeTargetOwner)
                 setViewTreeViewModelStoreOwner(closeTargetOwner)
@@ -293,6 +345,7 @@ class FloatingCaptionWindow(
             }
 
             windowManager.addView(tView, contentParams)
+            windowManager.addView(inputView, contentInputParams)
             windowManager.addView(cView, controlParams)
             // Add last so the close target is visually above both the caption
             // content and its control bar. FLAG_NOT_TOUCHABLE keeps the drag
@@ -301,6 +354,7 @@ class FloatingCaptionWindow(
             
             controlView = cView
             contentView = tView
+            contentInputView = inputView
             closeTargetView = closeView
             controlLifecycle = controlOwner
             contentLifecycle = contentOwner
@@ -312,9 +366,11 @@ class FloatingCaptionWindow(
         mainHandler.post {
             controlView?.let { windowManager.removeView(it) }
             closeTargetView?.let { windowManager.removeView(it) }
+            contentInputView?.let { windowManager.removeView(it) }
             contentView?.let { windowManager.removeView(it) }
             controlView = null
             contentView = null
+            contentInputView = null
             closeTargetView = null
             controlLifecycle?.destroy()
             contentLifecycle?.destroy()
