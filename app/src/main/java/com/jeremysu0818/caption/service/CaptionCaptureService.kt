@@ -25,7 +25,6 @@ import com.jeremysu0818.caption.R
 import com.jeremysu0818.caption.audio.InMemoryWavWriter
 import com.jeremysu0818.caption.audio.SystemAudioCapture
 import com.jeremysu0818.caption.audio.VoiceActivityDetector
-import com.jeremysu0818.caption.audio.WavFileWriter
 import com.jeremysu0818.caption.accessibility.CaptionAccessibilityService
 import com.jeremysu0818.caption.data.CaptionRuntimeStore
 import com.jeremysu0818.caption.data.SpeechEngineOption
@@ -348,77 +347,6 @@ class CaptionCaptureService : Service() {
             processingJob.join()
         } finally {
             audioFrames.close()
-            captureJob.cancel()
-        }
-    }
-
-    // ========================================================================
-    // Legacy Whisper capture loop (kept for reference, no longer used)
-    // ========================================================================
-
-    private suspend fun runWhisperCaptureLoop(
-        projection: MediaProjection,
-        modelFile: File,
-    ) = coroutineScope {
-        val audioChunks = Channel<ShortArray>(
-            capacity = 2,
-            onBufferOverflow = BufferOverflow.DROP_OLDEST,
-        )
-        val capture = SystemAudioCapture(projection)
-        val captureJob = launch {
-            capture.captureChunks(audioChunks, chunkDurationMs = SpeechEngineOption.WHISPER.chunkDurationMs())
-        }
-        val processingJob = launch(Dispatchers.Default) {
-            val chunkDir = File(cacheDir, "caption_chunks").apply { mkdirs() }
-            var index = 0L
-            for (samples in audioChunks) {
-                val chunkFile = File(chunkDir, "chunk_${index++}.wav")
-                try {
-                    WavFileWriter.writePcm16Mono(chunkFile, samples)
-                    val settings = CaptionGraph.preferences.settings.value
-                    withContext(Dispatchers.Main.immediate) {
-                        val status = I18n.getString("engine_transcribing", settings.speechEngine.label)
-                        CaptionRuntimeStore.updateStatus(status)
-                    }
-
-                    val sourceText = when (settings.speechEngine) {
-                        SpeechEngineOption.WHISPER -> {
-                            val whisperLanguage = if (settings.translationEnabled) {
-                                settings.sourceLanguageTag
-                            } else {
-                                "auto"
-                            }
-                            CaptionGraph.transcriber.transcribe(
-                                wavFile = chunkFile,
-                                modelFile = modelFile,
-                                languageTag = whisperLanguage,
-                            )
-                        }
-                        else -> continue
-                    }
-                    if (sourceText.isBlank()) continue
-
-                    val lineId = UUID.randomUUID().toString()
-                    val doTranslate = settings.translationEnabled
-                    withContext(Dispatchers.Main.immediate) {
-                        CaptionRuntimeStore.commitSourceText(lineId, sourceText, isTranslating = doTranslate)
-                    }
-                } catch (error: Throwable) {
-                    if (error is CancellationException) throw error
-                    val message = error.message ?: I18n.getString("caption_failed")
-                    withContext(Dispatchers.Main.immediate) {
-                        CaptionRuntimeStore.setError(message)
-                    }
-                } finally {
-                    chunkFile.delete()
-                }
-            }
-        }
-
-        try {
-            processingJob.join()
-        } finally {
-            audioChunks.close()
             captureJob.cancel()
         }
     }
