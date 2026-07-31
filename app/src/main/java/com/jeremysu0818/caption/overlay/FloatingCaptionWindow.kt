@@ -25,6 +25,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -411,6 +412,7 @@ class FloatingCaptionWindow(
     fun updateCaption(sourceText: String, translatedText: String?) {}
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun ControlBarApp(
     onDragStarted: () -> Unit,
@@ -421,7 +423,11 @@ fun ControlBarApp(
     onToggleSize: () -> Unit,
 ) {
     var isHoveringHandle by remember { mutableStateOf(false) }
-    val barAlpha by animateFloatAsState(if (isHoveringHandle) 0.8f else 0.3f, label = "Alpha")
+    val barAlpha by animateFloatAsState(
+        targetValue = if (isHoveringHandle) 0.8f else 0.3f,
+        animationSpec = MaterialTheme.motionScheme.fastEffectsSpec(),
+        label = "Alpha",
+    )
     val touchSlop = androidx.compose.ui.platform.LocalViewConfiguration.current.touchSlop
     val resizeHandleTouchWidthPx = with(LocalDensity.current) { 80.dp.toPx() }
 
@@ -526,19 +532,28 @@ fun ControlBarApp(
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun CloseTargetApp(state: CloseTargetState) {
+    val motionScheme = MaterialTheme.motionScheme
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.BottomCenter
     ) {
         AnimatedVisibility(
             visible = state.isVisible,
-            enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-            exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
+            enter = slideInVertically(
+                animationSpec = motionScheme.defaultSpatialSpec(),
+                initialOffsetY = { it },
+            ) + fadeIn(animationSpec = motionScheme.defaultEffectsSpec()),
+            exit = slideOutVertically(
+                animationSpec = motionScheme.fastSpatialSpec(),
+                targetOffsetY = { it },
+            ) + fadeOut(animationSpec = motionScheme.fastEffectsSpec()),
         ) {
             Box(modifier = Modifier.padding(bottom = 20.dp)) {
                 Button(
+                    shapes = ButtonDefaults.shapes(),
                     onClick = {},
                     modifier = Modifier
                         .width(128.dp)
@@ -668,10 +683,15 @@ fun CaptionContentList(
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun CaptionLineItem(line: CaptionLine, isNewest: Boolean) {
-    Column(modifier = Modifier.animateContentSize()) {
-        val style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+    Column(
+        modifier = Modifier.animateContentSize(
+            animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec(),
+        ),
+    ) {
+        val style = MaterialTheme.typography.titleLargeEmphasized
         if (isNewest && line.showTypewriter) {
             TypewriterText(text = line.sourceText, style = style)
         } else {

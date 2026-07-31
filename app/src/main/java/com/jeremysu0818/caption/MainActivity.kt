@@ -1,8 +1,8 @@
 package com.jeremysu0818.caption
 
 import android.Manifest
-import android.app.Activity
 import android.accessibilityservice.AccessibilityServiceInfo
+import android.app.Activity
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -13,57 +13,75 @@ import android.os.Bundle
 import android.provider.Settings
 import android.view.accessibility.AccessibilityManager
 import android.widget.Toast
+import androidx.annotation.DrawableRes
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.net.toUri
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.Crossfade
-import androidx.compose.animation.shrinkVertically
-import androidx.compose.animation.togetherWith
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LargeTopAppBar
+import androidx.compose.material3.LinearWavyProgressIndicator
+import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.ProgressIndicatorDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -75,19 +93,21 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
+import com.jeremysu0818.caption.accessibility.CaptionAccessibilityService
 import com.jeremysu0818.caption.data.CaptionLanguage
 import com.jeremysu0818.caption.data.CaptionLanguages
 import com.jeremysu0818.caption.data.CaptionRuntimeState
 import com.jeremysu0818.caption.data.CaptionSettings
+import com.jeremysu0818.caption.data.I18n
 import com.jeremysu0818.caption.data.SpeechEngineOption
 import com.jeremysu0818.caption.data.WhisperModelOption
-import com.jeremysu0818.caption.data.I18n
 import com.jeremysu0818.caption.data.t
-import com.jeremysu0818.caption.accessibility.CaptionAccessibilityService
 import com.jeremysu0818.caption.service.CaptionCaptureService
 import com.jeremysu0818.caption.ui.theme.CaptionTheme
 import com.jeremysu0818.caption.whisper.ModelDownloadState
@@ -134,7 +154,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun CaptionApp(
     startRequestCount: Int,
@@ -146,6 +166,7 @@ private fun CaptionApp(
     val runtimeState by CaptionGraph.runtimeStore.state.collectAsState()
     val downloadState by CaptionGraph.modelRepository.downloadState.collectAsState()
     val scope = rememberCoroutineScope()
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
 
     var permissionRefresh by remember { mutableIntStateOf(0) }
     var pendingStart by remember { mutableStateOf(false) }
@@ -155,7 +176,6 @@ private fun CaptionApp(
     var accessibilityPrompted by remember { mutableStateOf(false) }
     var isMlKitAdvancedAvailable by remember { mutableStateOf<Boolean?>(null) }
     var downloadJob by remember { mutableStateOf<Job?>(null) }
-
 
     val mediaProjectionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult(),
@@ -213,6 +233,7 @@ private fun CaptionApp(
         context.isCaptionAccessibilityServiceEnabled()
     }
     val accessibilityConnected by CaptionAccessibilityService.isConnected.collectAsState()
+
     LaunchedEffect(settings.model) {
         CaptionGraph.modelRepository.refresh(settings.model)
     }
@@ -295,139 +316,164 @@ private fun CaptionApp(
         }
     }
 
+    val allPermissionsGranted =
+        accessibilityGranted && overlayGranted && recordGranted && notificationGranted
+
     Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            TopAppBar(
+            LargeTopAppBar(
                 title = {
                     Text(
                         text = "Caption",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.SemiBold,
+                        style = MaterialTheme.typography.headlineMediumEmphasized,
                     )
                 },
+                scrollBehavior = scrollBehavior,
             )
         },
     ) { innerPadding ->
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp),
+                .padding(innerPadding),
+            contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 40.dp),
         ) {
-            ControlCenterCard(
-                runtimeState = runtimeState,
-                isRunning = runtimeState.isRunning,
-                canStart = accessibilityGranted && accessibilityConnected && overlayGranted && recordGranted,
-                onStart = onStartRequested,
-                onStop = { CaptionCaptureService.stop(context) }
-            )
-
-            val allPermissionsGranted =
-                accessibilityGranted && overlayGranted && recordGranted && notificationGranted
-            AnimatedVisibility(
-                visible = !allPermissionsGranted,
-                enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut()
-            ) {
-                PermissionAlertCard(
-                    overlayGranted = overlayGranted,
-                    recordGranted = recordGranted,
-                    notificationGranted = notificationGranted,
-                    accessibilityGranted = accessibilityGranted,
-                    onOpenAccessibilitySettings = {
-                        accessibilityPrompted = true
-                        accessibilitySettingsLauncher.launch(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
-                    },
-                    onOpenOverlaySettings = {
-                        overlayPrompted = true
-                        overlaySettingsLauncher.launch(context.overlaySettingsIntent())
-                    },
-                    onRequestRecord = {
-                        recordPrompted = true
-                        recordPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                    },
-                    onRequestNotifications = {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                            notificationPrompted = true
-                            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                        }
-                    },
-                )
-            }
-
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(
-                    text = t("settings"),
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(start = 4.dp)
-                )
-
-                ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-                    Column(modifier = Modifier.animateContentSize()) {
-                        SpeechEngineSection(
-                            settings = settings,
-                            isMlKitAdvancedAvailable = isMlKitAdvancedAvailable != false,
-                            onEngineSelected = CaptionGraph.preferences::updateSpeechEngine,
-                            onUnsupportedAdvancedSelected = {
-                                Toast.makeText(
-                                    context,
-                                    I18n.getString("mlkit_advanced_unsupported"),
-                                    Toast.LENGTH_SHORT,
-                                ).show()
-                            },
+            item {
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.TopCenter,
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .widthIn(max = 720.dp)
+                            .fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(20.dp),
+                    ) {
+                        ControlCenterCard(
+                            runtimeState = runtimeState,
+                            isRunning = runtimeState.isRunning,
+                            canStart = accessibilityGranted && accessibilityConnected && overlayGranted && recordGranted,
+                            onStart = onStartRequested,
+                            onStop = { CaptionCaptureService.stop(context) },
                         )
-                        
+
                         AnimatedVisibility(
-                            visible = settings.speechEngine == SpeechEngineOption.WHISPER,
-                            enter = expandVertically() + fadeIn(),
-                            exit = shrinkVertically() + fadeOut()
+                            visible = !allPermissionsGranted,
+                            enter = expressiveEnter(),
+                            exit = expressiveExit(),
                         ) {
-                            Column {
-                                HorizontalDivider(modifier = Modifier.padding(horizontal = 18.dp), color = MaterialTheme.colorScheme.surfaceVariant)
-                                WhisperModelSection(
+                            PermissionAlertCard(
+                                overlayGranted = overlayGranted,
+                                recordGranted = recordGranted,
+                                notificationGranted = notificationGranted,
+                                accessibilityGranted = accessibilityGranted,
+                                onOpenAccessibilitySettings = {
+                                    accessibilityPrompted = true
+                                    accessibilitySettingsLauncher.launch(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+                                },
+                                onOpenOverlaySettings = {
+                                    overlayPrompted = true
+                                    overlaySettingsLauncher.launch(context.overlaySettingsIntent())
+                                },
+                                onRequestRecord = {
+                                    recordPrompted = true
+                                    recordPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                                },
+                                onRequestNotifications = {
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                        notificationPrompted = true
+                                        notificationPermissionLauncher.launch(
+                                            Manifest.permission.POST_NOTIFICATIONS,
+                                        )
+                                    }
+                                },
+                            )
+                        }
+
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            SettingsHeading()
+
+                            SettingsCard(
+                                icon = R.drawable.sym_settings,
+                                title = t("speech_engine"),
+                            ) {
+                                SpeechEngineSection(
                                     settings = settings,
-                                    downloadState = downloadState,
-                                    onModelSelected = CaptionGraph.preferences::updateModel,
-                                    onDownloadModel = {
-                                        downloadJob = scope.launch {
-                                            try {
-                                                CaptionGraph.modelRepository.ensureModel(settings.model)
-                                            } finally {
-                                                downloadJob = null
-                                            }
-                                        }
-                                    },
-                                    onCancelDownload = {
-                                        downloadJob?.cancel()
-                                        downloadJob = null
-                                    },
-                                    onDeleteModel = {
-                                        scope.launch {
-                                            CaptionGraph.modelRepository.deleteModel(settings.model)
-                                        }
+                                    isMlKitAdvancedAvailable = isMlKitAdvancedAvailable != false,
+                                    onEngineSelected = CaptionGraph.preferences::updateSpeechEngine,
+                                    onUnsupportedAdvancedSelected = {
+                                        Toast.makeText(
+                                            context,
+                                            I18n.getString("mlkit_advanced_unsupported"),
+                                            Toast.LENGTH_SHORT,
+                                        ).show()
                                     },
                                 )
                             }
+
+                            AnimatedVisibility(
+                                visible = settings.speechEngine == SpeechEngineOption.WHISPER,
+                                enter = expressiveEnter(),
+                                exit = expressiveExit(),
+                            ) {
+                                SettingsCard(
+                                    icon = R.drawable.sym_download,
+                                    title = t("whisper_model"),
+                                ) {
+                                    WhisperModelSection(
+                                        settings = settings,
+                                        downloadState = downloadState,
+                                        onModelSelected = CaptionGraph.preferences::updateModel,
+                                        onDownloadModel = {
+                                            downloadJob = scope.launch {
+                                                try {
+                                                    CaptionGraph.modelRepository.ensureModel(settings.model)
+                                                } finally {
+                                                    downloadJob = null
+                                                }
+                                            }
+                                        },
+                                        onCancelDownload = {
+                                            downloadJob?.cancel()
+                                            downloadJob = null
+                                        },
+                                        onDeleteModel = {
+                                            scope.launch {
+                                                CaptionGraph.modelRepository.deleteModel(settings.model)
+                                            }
+                                        },
+                                    )
+                                }
+                            }
+
+                            SettingsCard(
+                                icon = R.drawable.sym_translate,
+                                title = t("local_translation"),
+                                trailingContent = {
+                                    Switch(
+                                        checked = settings.translationEnabled,
+                                        onCheckedChange = CaptionGraph.preferences::updateTranslationEnabled,
+                                    )
+                                },
+                            ) {
+                                TranslationSection(
+                                    settings = settings,
+                                    onSourceChanged = CaptionGraph.preferences::updateSourceLanguage,
+                                    onTargetChanged = CaptionGraph.preferences::updateTargetLanguage,
+                                )
+                            }
+
+                            SettingsCard(
+                                icon = R.drawable.sym_language,
+                                title = t("ui_language"),
+                            ) {
+                                UiLanguageSection(
+                                    settings = settings,
+                                    onLanguageSelected = CaptionGraph.preferences::updateUiLanguage,
+                                )
+                            }
                         }
-
-                        HorizontalDivider(modifier = Modifier.padding(horizontal = 18.dp), color = MaterialTheme.colorScheme.surfaceVariant)
-                        
-                        TranslationSection(
-                            settings = settings,
-                            onEnabledChanged = CaptionGraph.preferences::updateTranslationEnabled,
-                            onSourceChanged = CaptionGraph.preferences::updateSourceLanguage,
-                            onTargetChanged = CaptionGraph.preferences::updateTargetLanguage,
-                        )
-
-                        HorizontalDivider(modifier = Modifier.padding(horizontal = 18.dp), color = MaterialTheme.colorScheme.surfaceVariant)
-
-                        UiLanguageSection(
-                            settings = settings,
-                            onLanguageSelected = CaptionGraph.preferences::updateUiLanguage,
-                        )
                     }
                 }
             }
@@ -435,6 +481,33 @@ private fun CaptionApp(
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun expressiveEnter(): EnterTransition {
+    val motionScheme = MaterialTheme.motionScheme
+    return expandVertically(animationSpec = motionScheme.defaultSpatialSpec()) +
+        fadeIn(animationSpec = motionScheme.defaultEffectsSpec())
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun expressiveExit(): ExitTransition {
+    val motionScheme = MaterialTheme.motionScheme
+    return shrinkVertically(animationSpec = motionScheme.fastSpatialSpec()) +
+        fadeOut(animationSpec = motionScheme.fastEffectsSpec())
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun expressiveContentTransform(): ContentTransform {
+    val motionScheme = MaterialTheme.motionScheme
+    return (
+        fadeIn(animationSpec = motionScheme.defaultEffectsSpec()) +
+            scaleIn(initialScale = 0.96f, animationSpec = motionScheme.defaultSpatialSpec())
+        ).togetherWith(fadeOut(animationSpec = motionScheme.fastEffectsSpec()))
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun ControlCenterCard(
     runtimeState: CaptionRuntimeState,
@@ -443,80 +516,201 @@ private fun ControlCenterCard(
     onStart: () -> Unit,
     onStop: () -> Unit,
 ) {
+    val colorScheme = MaterialTheme.colorScheme
+    val motionScheme = MaterialTheme.motionScheme
+    val contentTransform = expressiveContentTransform()
+    val hasError = runtimeState.errorMessage != null
+    val containerColor by animateColorAsState(
+        targetValue = when {
+            hasError -> colorScheme.errorContainer
+            isRunning -> colorScheme.primaryContainer
+            else -> colorScheme.surfaceContainerHigh
+        },
+        animationSpec = motionScheme.defaultEffectsSpec(),
+        label = "caption_control_container",
+    )
+    val iconColor = when {
+        hasError -> colorScheme.onErrorContainer
+        isRunning -> colorScheme.onPrimary
+        else -> colorScheme.primary
+    }
+    val iconContainerColor = when {
+        hasError -> colorScheme.error
+        isRunning -> colorScheme.primary
+        else -> colorScheme.primaryContainer
+    }
+    val statusIcon = when {
+        hasError -> R.drawable.sym_error
+        isRunning -> R.drawable.sym_check_circle
+        else -> R.drawable.sym_mic
+    }
+
     ElevatedCard(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.elevatedCardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-        ),
+        shape = MaterialTheme.shapes.extraLargeIncreased,
+        colors = CardDefaults.elevatedCardColors(containerColor = containerColor),
     ) {
         Column(
             modifier = Modifier
-                .padding(18.dp)
-                .animateContentSize(),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+                .fillMaxWidth()
+                .padding(24.dp)
+                .animateContentSize(animationSpec = motionScheme.defaultSpatialSpec()),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Button(
-                    modifier = Modifier.weight(1f),
-                    onClick = onStart,
-                    enabled = !isRunning,
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                Surface(
+                    modifier = Modifier.size(52.dp),
+                    shape = CircleShape,
+                    color = iconContainerColor,
                 ) {
-                    Text(if (canStart) t("start_caption") else t("check_permission"))
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            painter = painterResource(statusIcon),
+                            contentDescription = null,
+                            tint = iconColor,
+                        )
+                    }
                 }
-                OutlinedButton(
-                    modifier = Modifier.weight(1f),
-                    onClick = onStop,
-                    enabled = isRunning,
-                ) {
-                    Text(t("stop"))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = t("status"),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = if (hasError) colorScheme.onErrorContainer else colorScheme.onSurfaceVariant,
+                    )
+                    AnimatedContent(
+                        targetState = runtimeState.status,
+                        label = "caption_status",
+                        transitionSpec = {
+                            val downloadingPrefix = I18n.getString("model_downloading_status")
+                                .substringBefore("{")
+                                .trim()
+                            val isDownloading = downloadingPrefix.isNotEmpty() &&
+                                (targetState.startsWith(downloadingPrefix) ||
+                                    initialState.startsWith(downloadingPrefix))
+                            if (isDownloading) {
+                                ContentTransform(
+                                    targetContentEnter = EnterTransition.None,
+                                    initialContentExit = ExitTransition.None,
+                                )
+                            } else {
+                                contentTransform
+                            }
+                        },
+                    ) { targetStatus ->
+                        Text(
+                            text = t(targetStatus),
+                            style = MaterialTheme.typography.titleLargeEmphasized,
+                        )
+                    }
                 }
             }
 
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(t("status"), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
-                AnimatedContent(
-                    targetState = runtimeState.status,
-                    label = "status",
-                    transitionSpec = {
-                        val downloadingPrefix = I18n.getString("model_downloading_status").substringBefore("{").trim()
-                        val isDownloading = (downloadingPrefix.isNotEmpty() && (targetState.startsWith(downloadingPrefix) || initialState.startsWith(downloadingPrefix))) ||
-                            targetState.startsWith("模型下載中") || initialState.startsWith("模型下載中")
-                        if (isDownloading) {
-                            ContentTransform(
-                                targetContentEnter = EnterTransition.None,
-                                initialContentExit = ExitTransition.None
+            val lastLine = runtimeState.lines.lastOrNull()
+            AnimatedVisibility(
+                visible = lastLine != null && lastLine.sourceText.isNotBlank(),
+                enter = expressiveEnter(),
+                exit = expressiveExit(),
+            ) {
+                Surface(
+                    shape = MaterialTheme.shapes.medium,
+                    color = if (hasError) {
+                        colorScheme.errorContainer.copy(alpha = 0.48f)
+                    } else {
+                        colorScheme.surfaceContainerLowest
+                    },
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Text(
+                            text = lastLine?.sourceText.orEmpty(),
+                            style = MaterialTheme.typography.bodyLarge,
+                        )
+                        AnimatedVisibility(
+                            visible = lastLine?.isTranslating == true &&
+                                lastLine.translatedText.isNullOrBlank(),
+                            enter = expressiveEnter(),
+                            exit = expressiveExit(),
+                        ) {
+                            Text(
+                                text = t("translating"),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = colorScheme.onSurfaceVariant,
                             )
-                        } else {
-                            (fadeIn(animationSpec = tween(220, delayMillis = 90)) +
-                                    scaleIn(initialScale = 0.92f, animationSpec = tween(220, delayMillis = 90)))
-                                .togetherWith(fadeOut(animationSpec = tween(90)))
+                        }
+                        AnimatedVisibility(
+                            visible = !lastLine?.translatedText.isNullOrBlank(),
+                            enter = expressiveEnter(),
+                            exit = expressiveExit(),
+                        ) {
+                            Text(
+                                text = lastLine?.translatedText.orEmpty(),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = colorScheme.onSurfaceVariant,
+                            )
                         }
                     }
-                ) { targetStatus ->
-                    Text(t(targetStatus), style = MaterialTheme.typography.titleMedium)
                 }
-                val lastLine = runtimeState.lines.lastOrNull()
-                AnimatedVisibility(visible = lastLine != null && lastLine.sourceText.isNotBlank()) {
-                    Text(lastLine?.sourceText.orEmpty(), style = MaterialTheme.typography.bodyLarge)
-                }
-                AnimatedVisibility(
-                    visible = lastLine != null &&
-                        lastLine.isTranslating &&
-                        lastLine.translatedText.isNullOrBlank()
-                ) {
-                    Text(t("translating"), style = MaterialTheme.typography.bodyMedium)
-                }
-                AnimatedVisibility(visible = lastLine != null && !lastLine.translatedText.isNullOrBlank()) {
-                    Text(lastLine?.translatedText.orEmpty(), style = MaterialTheme.typography.bodyMedium)
-                }
-                AnimatedVisibility(visible = runtimeState.errorMessage != null) {
-                    Text(t(runtimeState.errorMessage.orEmpty()), color = MaterialTheme.colorScheme.error)
+            }
+
+            AnimatedVisibility(
+                visible = runtimeState.errorMessage != null,
+                enter = fadeIn(animationSpec = motionScheme.defaultEffectsSpec()),
+                exit = fadeOut(animationSpec = motionScheme.fastEffectsSpec()),
+            ) {
+                Text(
+                    text = t(runtimeState.errorMessage.orEmpty()),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = colorScheme.onErrorContainer,
+                )
+            }
+
+            AnimatedContent(
+                targetState = isRunning,
+                label = "caption_primary_action",
+                transitionSpec = { contentTransform },
+            ) { running ->
+                if (running) {
+                    OutlinedButton(
+                        shapes = ButtonDefaults.shapes(),
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = onStop,
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = colorScheme.error,
+                        ),
+                        border = BorderStroke(1.dp, colorScheme.error),
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.sym_stop_circle),
+                            contentDescription = null,
+                        )
+                        Spacer(modifier = Modifier.size(ButtonDefaults.IconSpacing))
+                        Text(t("stop"))
+                    }
+                } else {
+                    Button(
+                        shapes = ButtonDefaults.shapes(),
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = onStart,
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.sym_mic),
+                            contentDescription = null,
+                        )
+                        Spacer(modifier = Modifier.size(ButtonDefaults.IconSpacing))
+                        Text(if (canStart) t("start_caption") else t("check_permission"))
+                    }
                 }
             }
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun PermissionAlertCard(
     overlayGranted: Boolean,
@@ -528,24 +722,53 @@ private fun PermissionAlertCard(
     onRequestRecord: () -> Unit,
     onRequestNotifications: () -> Unit,
 ) {
-    ElevatedCard(
+    val colorScheme = MaterialTheme.colorScheme
+    val motionScheme = MaterialTheme.motionScheme
+    Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.elevatedCardColors(
-            containerColor = MaterialTheme.colorScheme.errorContainer,
-            contentColor = MaterialTheme.colorScheme.onErrorContainer
-        )
+        shape = MaterialTheme.shapes.largeIncreased,
+        colors = CardDefaults.cardColors(
+            containerColor = colorScheme.errorContainer,
+            contentColor = colorScheme.onErrorContainer,
+        ),
     ) {
         Column(
             modifier = Modifier
-                .padding(18.dp)
-                .animateContentSize(),
+                .fillMaxWidth()
+                .padding(20.dp)
+                .animateContentSize(animationSpec = motionScheme.defaultSpatialSpec()),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text(t("permission_required"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Text(t("permission_reason"), style = MaterialTheme.typography.bodyMedium)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Surface(
+                    modifier = Modifier.size(40.dp),
+                    shape = CircleShape,
+                    color = colorScheme.error,
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            painter = painterResource(R.drawable.sym_warning),
+                            contentDescription = null,
+                            tint = colorScheme.onError,
+                        )
+                    }
+                }
+                Text(
+                    text = t("permission_required"),
+                    style = MaterialTheme.typography.titleMediumEmphasized,
+                )
+            }
+            Text(
+                text = t("permission_reason"),
+                style = MaterialTheme.typography.bodyMedium,
+            )
 
             if (!accessibilityGranted) {
                 PermissionRow(
+                    icon = R.drawable.sym_accessibility_new,
                     label = t("permission_accessibility"),
                     actionText = t("open_settings"),
                     onAction = onOpenAccessibilitySettings,
@@ -553,6 +776,7 @@ private fun PermissionAlertCard(
             }
             if (!overlayGranted) {
                 PermissionRow(
+                    icon = R.drawable.sym_settings,
                     label = t("permission_overlay"),
                     actionText = t("open_settings"),
                     onAction = onOpenOverlaySettings,
@@ -560,6 +784,7 @@ private fun PermissionAlertCard(
             }
             if (!recordGranted) {
                 PermissionRow(
+                    icon = R.drawable.sym_mic,
                     label = t("permission_record"),
                     actionText = t("allow"),
                     onAction = onRequestRecord,
@@ -567,6 +792,7 @@ private fun PermissionAlertCard(
             }
             if (!notificationGranted && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 PermissionRow(
+                    icon = R.drawable.sym_notifications,
                     label = t("permission_notification"),
                     actionText = t("allow"),
                     onAction = onRequestNotifications,
@@ -576,24 +802,137 @@ private fun PermissionAlertCard(
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun PermissionRow(
+    @DrawableRes icon: Int,
     label: String,
     actionText: String,
     onAction: () -> Unit,
 ) {
+    val colorScheme = MaterialTheme.colorScheme
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text(label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-        Button(onClick = onAction) {
+        Surface(
+            modifier = Modifier.size(36.dp),
+            shape = CircleShape,
+            color = colorScheme.onErrorContainer.copy(alpha = 0.1f),
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    painter = painterResource(icon),
+                    contentDescription = null,
+                    tint = colorScheme.onErrorContainer,
+                )
+            }
+        }
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.weight(1f),
+        )
+        TextButton(
+            shapes = ButtonDefaults.shapes(),
+            onClick = onAction,
+            colors = ButtonDefaults.textButtonColors(contentColor = colorScheme.onErrorContainer),
+        ) {
             Text(actionText)
         }
     }
 }
 
+@Composable
+private fun SettingsHeading() {
+    Row(
+        modifier = Modifier.padding(start = 4.dp, top = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Surface(
+            modifier = Modifier.size(36.dp),
+            shape = CircleShape,
+            color = MaterialTheme.colorScheme.secondaryContainer,
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    painter = painterResource(R.drawable.sym_settings),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                )
+            }
+        }
+        Text(
+            text = t("settings"),
+            style = MaterialTheme.typography.titleLargeEmphasized,
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun SettingsCard(
+    @DrawableRes icon: Int,
+    title: String,
+    trailingContent: @Composable (() -> Unit)? = null,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    val colorScheme = MaterialTheme.colorScheme
+    val motionScheme = MaterialTheme.motionScheme
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.largeIncreased,
+        colors = CardDefaults.cardColors(containerColor = colorScheme.surfaceContainerLow),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .animateContentSize(animationSpec = motionScheme.defaultSpatialSpec()),
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 20.dp, top = 18.dp, end = 16.dp, bottom = 18.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Surface(
+                    modifier = Modifier.size(40.dp),
+                    shape = CircleShape,
+                    color = colorScheme.primaryContainer,
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            painter = painterResource(icon),
+                            contentDescription = null,
+                            tint = colorScheme.onPrimaryContainer,
+                        )
+                    }
+                }
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMediumEmphasized,
+                    modifier = Modifier.weight(1f),
+                )
+                trailingContent?.invoke()
+            }
+            HorizontalDivider(
+                color = colorScheme.outlineVariant.copy(alpha = 0.45f),
+            )
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                content = content,
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun SpeechEngineSection(
     settings: CaptionSettings,
@@ -601,45 +940,79 @@ private fun SpeechEngineSection(
     onEngineSelected: (SpeechEngineOption) -> Unit,
     onUnsupportedAdvancedSelected: () -> Unit,
 ) {
-    Column(
-        modifier = Modifier.fillMaxWidth().padding(18.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Text(t("speech_engine"), style = MaterialTheme.typography.titleMedium)
-        SpeechEngineOption.entries.forEach { option ->
-            val isAdvancedOption = option == SpeechEngineOption.MLKIT_ADVANCED
-            val isOptionEnabled = !isAdvancedOption || isMlKitAdvancedAvailable
-
-            FilterChip(
-                modifier = Modifier.alpha(if (isOptionEnabled) 1f else 0.45f),
-                selected = settings.speechEngine == option,
-                onClick = {
-                    if (isOptionEnabled) {
-                        onEngineSelected(option)
-                    } else {
-                        onUnsupportedAdvancedSelected()
-                    }
-                },
-                label = { Text(option.label) },
-            )
+    val contentTransform = expressiveContentTransform()
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        SpeechEngineOption.entries.chunked(2).forEach { rowOptions ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                rowOptions.forEach { option ->
+                    val isAdvancedOption = option == SpeechEngineOption.MLKIT_ADVANCED
+                    val isOptionEnabled = !isAdvancedOption || isMlKitAdvancedAvailable
+                    val isSelected = settings.speechEngine == option
+                    FilterChip(
+                        selected = isSelected,
+                        onClick = {
+                            if (isOptionEnabled) {
+                                onEngineSelected(option)
+                            } else {
+                                onUnsupportedAdvancedSelected()
+                            }
+                        },
+                        label = {
+                            Text(
+                                text = option.label,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        },
+                        shapes = FilterChipDefaults.shapes(),
+                        modifier = Modifier.weight(1f),
+                        enabled = isOptionEnabled,
+                        leadingIcon = if (isSelected) {
+                            {
+                                Icon(
+                                    painter = painterResource(R.drawable.sym_check_circle),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(FilterChipDefaults.IconSize),
+                                )
+                            }
+                        } else {
+                            null
+                        },
+                    )
+                }
+                if (rowOptions.size == 1) {
+                    Spacer(modifier = Modifier.weight(1f))
+                }
+            }
         }
         AnimatedContent(
             targetState = settings.speechEngine,
-            label = "engine_description"
+            label = "engine_description",
+            transitionSpec = { contentTransform },
         ) { engine ->
-            Text(
-                text = when (engine) {
-                    SpeechEngineOption.WHISPER -> t("engine_whisper_desc")
-                    SpeechEngineOption.MLKIT_BASIC -> t("engine_mlkit_basic_desc")
-                    SpeechEngineOption.MLKIT_ADVANCED -> t("engine_mlkit_advanced_desc")
-                },
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            Surface(
+                shape = MaterialTheme.shapes.medium,
+                color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.55f),
+            ) {
+                Text(
+                    text = when (engine) {
+                        SpeechEngineOption.WHISPER -> t("engine_whisper_desc")
+                        SpeechEngineOption.MLKIT_BASIC -> t("engine_mlkit_basic_desc")
+                        SpeechEngineOption.MLKIT_ADVANCED -> t("engine_mlkit_advanced_desc")
+                    },
+                    modifier = Modifier.padding(14.dp),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun WhisperModelSection(
     settings: CaptionSettings,
@@ -655,64 +1028,60 @@ private fun WhisperModelSection(
     if (showCancelConfirmation) {
         AlertDialog(
             onDismissRequest = { showCancelConfirmation = false },
-            title = {
-                Text(text = t("cancel_download_title"))
-            },
-            text = {
-                Text(text = t("cancel_download_message", settings.model.displayName))
-            },
+            title = { Text(text = t("cancel_download_title")) },
+            text = { Text(text = t("cancel_download_message", settings.model.displayName)) },
             confirmButton = {
                 TextButton(
+                    shapes = ButtonDefaults.shapes(),
                     onClick = {
                         showCancelConfirmation = false
                         onCancelDownload()
                     },
                     colors = ButtonDefaults.textButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error
-                    )
+                        contentColor = MaterialTheme.colorScheme.error,
+                    ),
                 ) {
                     Text(t("confirm_cancel"))
                 }
             },
             dismissButton = {
                 TextButton(
-                    onClick = { showCancelConfirmation = false }
+                    shapes = ButtonDefaults.shapes(),
+                    onClick = { showCancelConfirmation = false },
                 ) {
                     Text(t("back"))
                 }
-            }
+            },
         )
     }
 
     if (showDeleteConfirmation) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirmation = false },
-            title = {
-                Text(text = t("delete_model_title"))
-            },
-            text = {
-                Text(text = t("delete_model_message", settings.model.displayName))
-            },
+            title = { Text(text = t("delete_model_title")) },
+            text = { Text(text = t("delete_model_message", settings.model.displayName)) },
             confirmButton = {
                 TextButton(
+                    shapes = ButtonDefaults.shapes(),
                     onClick = {
                         showDeleteConfirmation = false
                         onDeleteModel()
                     },
                     colors = ButtonDefaults.textButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error
-                    )
+                        contentColor = MaterialTheme.colorScheme.error,
+                    ),
                 ) {
                     Text(t("confirm_delete"))
                 }
             },
             dismissButton = {
                 TextButton(
-                    onClick = { showDeleteConfirmation = false }
+                    shapes = ButtonDefaults.shapes(),
+                    onClick = { showDeleteConfirmation = false },
                 ) {
                     Text(t("cancel"))
                 }
-            }
+            },
         )
     }
 
@@ -721,24 +1090,43 @@ private fun WhisperModelSection(
     } else {
         ModelDownloadState(model = settings.model)
     }
+    val animatedDownloadProgress by animateFloatAsState(
+        targetValue = selectedDownloadState.progress.coerceIn(0f, 1f),
+        animationSpec = ProgressIndicatorDefaults.ProgressAnimationSpec,
+        label = "model_download_progress",
+    )
+    val contentTransform = expressiveContentTransform()
 
-    Column(
-        modifier = Modifier.fillMaxWidth().padding(18.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Text(t("whisper_model"), style = MaterialTheme.typography.titleMedium)
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         WhisperModelOption.entries.chunked(2).forEach { rowModels ->
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 rowModels.forEach { option ->
+                    val isSelected = settings.model == option
                     FilterChip(
-                        modifier = Modifier.weight(1f),
-                        selected = settings.model == option,
+                        selected = isSelected,
                         onClick = { onModelSelected(option) },
                         label = {
-                            Text("${option.displayName} · ${option.sizeLabel}")
+                            Text(
+                                text = "${option.displayName} · ${option.sizeLabel}",
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        },
+                        shapes = FilterChipDefaults.shapes(),
+                        modifier = Modifier.weight(1f),
+                        leadingIcon = if (isSelected) {
+                            {
+                                Icon(
+                                    painter = painterResource(R.drawable.sym_check_circle),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(FilterChipDefaults.IconSize),
+                                )
+                            }
+                        } else {
+                            null
                         },
                     )
                 }
@@ -747,197 +1135,269 @@ private fun WhisperModelSection(
                 }
             }
         }
-        Text(
-            text = when {
-                selectedDownloadState.isDownloaded -> t("model_downloaded")
-                selectedDownloadState.isDownloading -> selectedDownloadState.buildStatusText()
-                selectedDownloadState.errorMessage != null -> t(selectedDownloadState.errorMessage)
-                else -> t("model_not_downloaded")
-            },
-            style = MaterialTheme.typography.bodySmall,
-            color = if (selectedDownloadState.errorMessage != null) {
-                MaterialTheme.colorScheme.error
-            } else {
-                MaterialTheme.colorScheme.onSurfaceVariant
-            },
-        )
+
+        val hasError = selectedDownloadState.errorMessage != null
+        val statusContainerColor = when {
+            hasError -> MaterialTheme.colorScheme.errorContainer
+            selectedDownloadState.isDownloaded -> MaterialTheme.colorScheme.secondaryContainer
+            else -> MaterialTheme.colorScheme.surfaceContainerHighest
+        }
+        val statusContentColor = when {
+            hasError -> MaterialTheme.colorScheme.onErrorContainer
+            selectedDownloadState.isDownloaded -> MaterialTheme.colorScheme.onSecondaryContainer
+            else -> MaterialTheme.colorScheme.onSurfaceVariant
+        }
+        val statusIcon = when {
+            hasError -> R.drawable.sym_error
+            selectedDownloadState.isDownloaded -> R.drawable.sym_check_circle
+            else -> R.drawable.sym_download
+        }
+        Surface(
+            shape = MaterialTheme.shapes.medium,
+            color = statusContainerColor,
+            contentColor = statusContentColor,
+        ) {
+            Row(
+                modifier = Modifier.padding(14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                if (selectedDownloadState.isDownloading) {
+                    LoadingIndicator(
+                        progress = { animatedDownloadProgress },
+                        modifier = Modifier.size(28.dp),
+                        color = statusContentColor,
+                    )
+                } else {
+                    Icon(painter = painterResource(statusIcon), contentDescription = null)
+                }
+                Text(
+                    text = when {
+                        selectedDownloadState.isDownloaded -> t("model_downloaded")
+                        selectedDownloadState.isDownloading -> selectedDownloadState.buildStatusText()
+                        selectedDownloadState.errorMessage != null -> t(selectedDownloadState.errorMessage)
+                        else -> t("model_not_downloaded")
+                    },
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+        }
+
         AnimatedVisibility(
             visible = selectedDownloadState.isDownloading,
-            enter = expandVertically() + fadeIn(),
-            exit = shrinkVertically() + fadeOut()
+            enter = expressiveEnter(),
+            exit = expressiveExit(),
         ) {
-            LinearProgressIndicator(
-                progress = { selectedDownloadState.progress.coerceIn(0f, 1f) },
-                modifier = Modifier.fillMaxWidth(),
+            LinearWavyProgressIndicator(
+                progress = { animatedDownloadProgress },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(12.dp),
             )
         }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Button(
-                modifier = Modifier.weight(1f),
-                onClick = onDownloadModel,
-                enabled = !selectedDownloadState.isDownloaded && !selectedDownloadState.isDownloading,
-            ) {
-                Text(t("download_model", settings.model.displayName))
-            }
-            val buttonState = when {
-                selectedDownloadState.isDownloading -> 1
-                selectedDownloadState.isDownloaded -> 2
-                else -> 0
-            }
-            Crossfade(
-                targetState = buttonState,
-                modifier = Modifier.weight(1f),
-                label = "action_button"
-            ) { state ->
-                when (state) {
-                    1 -> {
-                        OutlinedButton(
-                            modifier = Modifier.fillMaxWidth(),
-                            onClick = { showCancelConfirmation = true },
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = MaterialTheme.colorScheme.error
-                            ),
-                            border = BorderStroke(
-                                width = 1.dp,
-                                color = MaterialTheme.colorScheme.error
-                            )
-                        ) {
-                            Text(t("cancel_download"))
-                        }
+
+        AnimatedContent(
+            targetState = when {
+                selectedDownloadState.isDownloading -> ModelAction.Cancel
+                selectedDownloadState.isDownloaded -> ModelAction.Delete
+                else -> ModelAction.Download
+            },
+            label = "model_action",
+            transitionSpec = { contentTransform },
+        ) { action ->
+            when (action) {
+                ModelAction.Download -> {
+                    FilledTonalButton(
+                        shapes = ButtonDefaults.shapes(),
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = onDownloadModel,
+                        enabled = !selectedDownloadState.isDownloading && !selectedDownloadState.isDownloaded,
+                    ) {
+                        Icon(painter = painterResource(R.drawable.sym_download), contentDescription = null)
+                        Spacer(modifier = Modifier.size(ButtonDefaults.IconSpacing))
+                        Text(t("download_model", settings.model.displayName))
                     }
-                    2 -> {
-                        OutlinedButton(
-                            modifier = Modifier.fillMaxWidth(),
-                            onClick = { showDeleteConfirmation = true },
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = MaterialTheme.colorScheme.error
-                            ),
-                            border = BorderStroke(
-                                width = 1.dp,
-                                color = MaterialTheme.colorScheme.error
-                            )
-                        ) {
-                            Text(t("delete_model", settings.model.displayName))
-                        }
+                }
+
+                ModelAction.Cancel -> {
+                    OutlinedButton(
+                        shapes = ButtonDefaults.shapes(),
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = { showCancelConfirmation = true },
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = MaterialTheme.colorScheme.error,
+                        ),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.error),
+                    ) {
+                        Text(t("cancel_download"))
                     }
-                    else -> Spacer(modifier = Modifier.fillMaxWidth())
+                }
+
+                ModelAction.Delete -> {
+                    OutlinedButton(
+                        shapes = ButtonDefaults.shapes(),
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = { showDeleteConfirmation = true },
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = MaterialTheme.colorScheme.error,
+                        ),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.error),
+                    ) {
+                        Text(t("delete_model", settings.model.displayName))
+                    }
                 }
             }
         }
     }
 }
 
+private enum class ModelAction {
+    Download,
+    Cancel,
+    Delete,
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun TranslationSection(
     settings: CaptionSettings,
-    onEnabledChanged: (Boolean) -> Unit,
     onSourceChanged: (String) -> Unit,
     onTargetChanged: (String) -> Unit,
 ) {
-    Column(
-        modifier = Modifier.fillMaxWidth().padding(18.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
+    val sourceLanguages = remember(settings.speechEngine, settings.translationEnabled) {
+        CaptionLanguages.getFilteredLanguages(settings.speechEngine, settings.translationEnabled)
+    }
+    val targetLanguages = remember { CaptionLanguages.targetLanguages() }
+
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Text(
+            text = t("translation_desc"),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        LanguageDropdown(
+            label = t("source"),
+            selectedTag = settings.sourceLanguageTag,
+            languages = sourceLanguages,
+            onSelected = onSourceChanged,
+        )
+        AnimatedVisibility(
+            visible = settings.translationEnabled,
+            enter = expressiveEnter(),
+            exit = expressiveExit(),
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(t("local_translation"), style = MaterialTheme.typography.titleMedium)
-                Text(
-                    text = t("translation_desc"),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Switch(
-                checked = settings.translationEnabled,
-                onCheckedChange = onEnabledChanged,
-            )
-        }
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .animateContentSize(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            val sourceLanguages = remember(settings.speechEngine, settings.translationEnabled) {
-                CaptionLanguages.getFilteredLanguages(settings.speechEngine, settings.translationEnabled)
-            }
             LanguageDropdown(
-                modifier = Modifier.weight(1f),
-                label = t("source"),
-                selectedTag = settings.sourceLanguageTag,
-                languages = sourceLanguages,
-                onSelected = onSourceChanged,
+                label = t("target"),
+                selectedTag = settings.targetLanguageTag,
+                languages = targetLanguages,
+                onSelected = onTargetChanged,
             )
-            Crossfade(
-                targetState = settings.translationEnabled,
-                modifier = Modifier.weight(1f),
-                label = "target_language"
-            ) { enabled ->
-                if (enabled) {
-                    val targetLanguages = remember {
-                        CaptionLanguages.targetLanguages()
-                    }
-                    LanguageDropdown(
-                        modifier = Modifier.fillMaxWidth(),
-                        label = t("target"),
-                        selectedTag = settings.targetLanguageTag,
-                        languages = targetLanguages,
-                        onSelected = onTargetChanged,
-                    )
-                } else {
-                    Spacer(modifier = Modifier.fillMaxWidth())
-                }
-            }
         }
-        AnimatedContent(
-            targetState = settings.translationEnabled,
-            label = "translation_hint"
-        ) { enabled ->
+        Surface(
+            shape = MaterialTheme.shapes.medium,
+            color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.55f),
+        ) {
             Text(
-                text = if (enabled) t("translation_enabled_desc") else t("translation_disabled_desc"),
+                text = if (settings.translationEnabled) {
+                    t("translation_enabled_desc")
+                } else {
+                    t("translation_disabled_desc")
+                },
+                modifier = Modifier.padding(14.dp),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
             )
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun LanguageDropdown(
-    modifier: Modifier = Modifier,
-    label: String,
+    label: String? = null,
     selectedTag: String,
+    selectedLabel: String = CaptionLanguages.labelFor(selectedTag),
     languages: List<CaptionLanguage>,
     onSelected: (String) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
-    Column(modifier = modifier) {
-        Text(label, style = MaterialTheme.typography.labelLarge)
-        Spacer(modifier = Modifier.height(6.dp))
-        OutlinedButton(
-            modifier = Modifier.fillMaxWidth(),
-            onClick = { expanded = true },
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = it },
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        OutlinedTextField(
+            value = selectedLabel,
+            onValueChange = {},
+            modifier = Modifier
+                .fillMaxWidth()
+                .menuAnchor(
+                    type = ExposedDropdownMenuAnchorType.PrimaryNotEditable,
+                    enabled = true,
+                ),
+            readOnly = true,
+            singleLine = true,
+            label = label?.let { dropdownLabel -> { Text(dropdownLabel) } },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.heightIn(max = 320.dp),
         ) {
-            Text(CaptionLanguages.labelFor(selectedTag))
-        }
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            languages.forEach { language ->
+            languages.forEachIndexed { index, language ->
+                val isSelected = language.tag == selectedTag
                 DropdownMenuItem(
-                    text = { Text(language.label) },
+                    selected = isSelected,
                     onClick = {
                         expanded = false
                         onSelected(language.tag)
+                    },
+                    text = {
+                        Text(
+                            text = language.label,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    },
+                    shapes = MenuDefaults.itemShape(index = index, count = languages.size),
+                    selectedLeadingIcon = if (isSelected) {
+                        {
+                            Icon(
+                                painter = painterResource(R.drawable.sym_check_circle),
+                                contentDescription = null,
+                            )
+                        }
+                    } else {
+                        null
                     },
                 )
             }
         }
     }
+}
+
+@Composable
+private fun UiLanguageSection(
+    settings: CaptionSettings,
+    onLanguageSelected: (String) -> Unit,
+) {
+    val systemDefault = t("system_default")
+    val languages = remember(systemDefault) {
+        listOf(CaptionLanguage(tag = "system", label = systemDefault)) + CaptionLanguages.supported
+    }
+    LanguageDropdown(
+        selectedTag = settings.uiLanguageTag,
+        selectedLabel = if (settings.uiLanguageTag == "system") {
+            systemDefault
+        } else {
+            CaptionLanguages.labelFor(settings.uiLanguageTag)
+        },
+        languages = languages,
+        onSelected = onLanguageSelected,
+    )
 }
 
 private fun Context.hasPermission(permission: String): Boolean =
@@ -957,75 +1417,4 @@ private fun Context.isCaptionAccessibilityServiceEnabled(): Boolean {
             val serviceInfo = service.resolveInfo.serviceInfo
             ComponentName(serviceInfo.packageName, serviceInfo.name) == captionService
         }
-}
-
-private fun Float.asPercent(): String = "${(this * 100).toInt().coerceIn(0, 100)}%"
-
-private fun Long.asReadableSpeed(): String =
-    if (this <= 0L) I18n.getString("calculating")
-    else "${asReadableSize()}/s"
-
-private fun Long.asReadableSize(): String {
-    if (this < 0L) return "--"
-    if (this < 1024L) return "${this} B"
-
-    val units = arrayOf("KB", "MB", "GB", "TB")
-    var value = this.toDouble()
-    var unitIndex = -1
-    while (value >= 1024.0 && unitIndex < units.lastIndex) {
-        value /= 1024.0
-        unitIndex++
-    }
-
-    val decimals = if (value >= 100 || unitIndex == 0) 0 else 1
-    return "%.${decimals}f %s".format(value, units[unitIndex])
-}
-
-@Composable
-private fun UiLanguageSection(
-    settings: CaptionSettings,
-    onLanguageSelected: (String) -> Unit,
-) {
-    var expanded by remember { mutableStateOf(false) }
-    val languages = remember {
-        val systemOption = CaptionLanguage(tag = "system", label = I18n.getString("system_default"))
-        listOf(systemOption) + CaptionLanguages.supported
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(18.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Text(t("ui_language"), style = MaterialTheme.typography.titleMedium)
-        Box(modifier = Modifier.fillMaxWidth()) {
-            OutlinedButton(
-                modifier = Modifier.fillMaxWidth(),
-                onClick = { expanded = true },
-            ) {
-                val currentLabel = if (settings.uiLanguageTag == "system") {
-                    t("system_default")
-                } else {
-                    CaptionLanguages.labelFor(settings.uiLanguageTag)
-                }
-                Text(currentLabel)
-            }
-            DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-                modifier = Modifier.fillMaxWidth(0.9f).height(300.dp)
-            ) {
-                languages.forEach { language ->
-                    DropdownMenuItem(
-                        text = { Text(language.label) },
-                        onClick = {
-                            expanded = false
-                            onLanguageSelected(language.tag)
-                        },
-                    )
-                }
-            }
-        }
-    }
 }
