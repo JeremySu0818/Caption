@@ -81,5 +81,9 @@
   "error_translate_unsupported_lang": "لا يدعم ML Kit Translate اللغة: {tag}",
   "error_whisper_unsupported_lang": "الهمس لا يدعم اللغة: {tag}",
   "error_translate_source_unsupported": "لا تدعم ML Kit لغة المصدر: {tag1} ({tag2})",
-  "error_translate_target_unsupported": "لا تدعم ML Kit اللغة الهدف: {tag1} ({tag2})"
+  "error_translate_target_unsupported": "لا تدعم ML Kit اللغة الهدف: {tag1} ({tag2})",
+  "color_theme": "سمة الألوان",
+  "theme_system": "اتّباع النظام",
+  "theme_light": "فاتح",
+  "theme_dark": "داكن"
 }

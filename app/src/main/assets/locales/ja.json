@@ -81,5 +81,9 @@
   "error_translate_unsupported_lang": "ML Kit Translate は言語をサポートしていません: {tag}",
   "error_whisper_unsupported_lang": "Whisper は次の言語をサポートしていません: {tag}",
   "error_translate_source_unsupported": "ML Kit はソース言語をサポートしていません: {tag1} ({tag2})",
-  "error_translate_target_unsupported": "ML Kit はターゲット言語をサポートしていません: {tag1} ({tag2})"
+  "error_translate_target_unsupported": "ML Kit はターゲット言語をサポートしていません: {tag1} ({tag2})",
+  "color_theme": "カラーテーマ",
+  "theme_system": "システムに合わせる",
+  "theme_light": "ライト",
+  "theme_dark": "ダーク"
 }

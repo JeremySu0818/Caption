@@ -81,5 +81,9 @@
   "error_translate_unsupported_lang": "ML Kit Fassara baya goyan bayan yare: {tag}",
   "error_whisper_unsupported_lang": "Wawasi baya goyon bayan harshe: {tag}",
   "error_translate_source_unsupported": "ML Kit baya goyan bayan yaren tushe: {tag1} ({tag2})",
-  "error_translate_target_unsupported": "ML Kit baya tallafawa yaren manufa: {tag1} ({tag2})"
+  "error_translate_target_unsupported": "ML Kit baya tallafawa yaren manufa: {tag1} ({tag2})",
+  "color_theme": "Jigon launi",
+  "theme_system": "Bi tsarin",
+  "theme_light": "Haske",
+  "theme_dark": "Duhu"
 }

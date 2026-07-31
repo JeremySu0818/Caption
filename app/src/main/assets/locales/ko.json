@@ -81,5 +81,9 @@
   "error_translate_unsupported_lang": "ML Kit 번역은 다음 언어를 지원하지 않습니다: {tag}",
   "error_whisper_unsupported_lang": "Whisper는 다음 언어를 지원하지 않습니다: {tag}",
   "error_translate_source_unsupported": "ML Kit는 출발어를 지원하지 않습니다: {tag1} ({tag2})",
-  "error_translate_target_unsupported": "ML Kit는 도착어를 지원하지 않습니다: {tag1} ({tag2})"
+  "error_translate_target_unsupported": "ML Kit는 도착어를 지원하지 않습니다: {tag1} ({tag2})",
+  "color_theme": "색상 테마",
+  "theme_system": "시스템 설정",
+  "theme_light": "라이트",
+  "theme_dark": "다크"
 }

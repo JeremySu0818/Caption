@@ -81,5 +81,9 @@
   "error_translate_unsupported_lang": "Tsy mahazaka fiteny ny ML Kit Translate: {tag}",
   "error_whisper_unsupported_lang": "Tsy manohana fiteny: {tag}",
   "error_translate_source_unsupported": "Ny ML Kit dia tsy mahazaka fiteny loharano: {tag1} ({tag2})",
-  "error_translate_target_unsupported": "ML Kit dia tsy mahazaka fiteny kendrena: {tag1} ({tag2})"
+  "error_translate_target_unsupported": "ML Kit dia tsy mahazaka fiteny kendrena: {tag1} ({tag2})",
+  "color_theme": "Lohahevitra loko",
+  "theme_system": "Araho ny rafitra",
+  "theme_light": "Mazava",
+  "theme_dark": "Maizina"
 }

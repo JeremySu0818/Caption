@@ -81,5 +81,9 @@
   "error_translate_unsupported_lang": "ML Kit Translate quyidagi tilni qo‘llab-quvvatlamaydi: {tag}",
   "error_whisper_unsupported_lang": "Whisper tilni qo‘llab-quvvatlamaydi: {tag}",
   "error_translate_source_unsupported": "ML to'plami manba tilini qo'llab-quvvatlamaydi: {tag1} ({tag2})",
-  "error_translate_target_unsupported": "ML toʻplami maqsadli tilni qoʻllab-quvvatlamaydi: {tag1} ({tag2})"
+  "error_translate_target_unsupported": "ML toʻplami maqsadli tilni qoʻllab-quvvatlamaydi: {tag1} ({tag2})",
+  "color_theme": "Rang mavzusi",
+  "theme_system": "Tizimga mos",
+  "theme_light": "Yorugʻ",
+  "theme_dark": "Qorongʻi"
 }

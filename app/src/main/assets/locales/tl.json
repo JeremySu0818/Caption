@@ -81,5 +81,9 @@
   "error_translate_unsupported_lang": "Hindi sinusuportahan ng ML Kit Translate ang wika: {tag}",
   "error_whisper_unsupported_lang": "Hindi sinusuportahan ng whisper ang wika: {tag}",
   "error_translate_source_unsupported": "Hindi sinusuportahan ng ML Kit ang source language: {tag1} ({tag2})",
-  "error_translate_target_unsupported": "Hindi sinusuportahan ng ML Kit ang target na wika: {tag1} ({tag2})"
+  "error_translate_target_unsupported": "Hindi sinusuportahan ng ML Kit ang target na wika: {tag1} ({tag2})",
+  "color_theme": "Tema ng kulay",
+  "theme_system": "Sundin ang system",
+  "theme_light": "Maliwanag",
+  "theme_dark": "Madilim"
 }

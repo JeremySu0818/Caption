@@ -81,5 +81,9 @@
   "error_translate_unsupported_lang": "ML Kit Translate ei tue kieltä: {tag}",
   "error_whisper_unsupported_lang": "Kuiskaus ei tue kieltä: {tag}",
   "error_translate_source_unsupported": "ML Kit ei tue lähdekieltä: {tag1} ({tag2})",
-  "error_translate_target_unsupported": "ML Kit ei tue kohdekieltä: {tag1} ({tag2})"
+  "error_translate_target_unsupported": "ML Kit ei tue kohdekieltä: {tag1} ({tag2})",
+  "color_theme": "Väriteema",
+  "theme_system": "Järjestelmän mukaan",
+  "theme_light": "Vaalea",
+  "theme_dark": "Tumma"
 }

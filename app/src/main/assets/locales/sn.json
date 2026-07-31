@@ -81,5 +81,9 @@
   "error_translate_unsupported_lang": "ML Kit Translate haitsigire mutauro: {tag}",
   "error_whisper_unsupported_lang": "Kuzevezera hakutsigire mutauro: {tag}",
   "error_translate_source_unsupported": "ML Kit haitsigire mutauro unobva: {tag1} ({tag2})",
-  "error_translate_target_unsupported": "ML Kit haitsigire mutauro waunonongedza: {tag1} ({tag2})"
+  "error_translate_target_unsupported": "ML Kit haitsigire mutauro waunonongedza: {tag1} ({tag2})",
+  "color_theme": "Dingindira reruvara",
+  "theme_system": "Tevera sisitimu",
+  "theme_light": "Chiedza",
+  "theme_dark": "Rima"
 }

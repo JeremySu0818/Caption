@@ -81,5 +81,9 @@
   "error_translate_unsupported_lang": "ML Kit Translate henteu ngadukung basa: {tag}",
   "error_whisper_unsupported_lang": "Whisper teu ngarojong basa: {tag}",
   "error_translate_source_unsupported": "ML Kit henteu ngadukung basa sumber: {tag1} ({tag2})",
-  "error_translate_target_unsupported": "ML Kit henteu ngadukung basa sasaran: {tag1} ({tag2})"
+  "error_translate_target_unsupported": "ML Kit henteu ngadukung basa sasaran: {tag1} ({tag2})",
+  "color_theme": "Téma warna",
+  "theme_system": "Turutan sistem",
+  "theme_light": "Caang",
+  "theme_dark": "Poék"
 }

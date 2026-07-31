@@ -81,5 +81,9 @@
   "error_translate_unsupported_lang": "ML Kit Translate nu acceptă limba: {tag}",
   "error_whisper_unsupported_lang": "Whisper nu acceptă limba: {tag}",
   "error_translate_source_unsupported": "Kitul ML nu acceptă limba sursă: {tag1} ({tag2})",
-  "error_translate_target_unsupported": "Kitul ML nu acceptă limba țintă: {tag1} ({tag2})"
+  "error_translate_target_unsupported": "Kitul ML nu acceptă limba țintă: {tag1} ({tag2})",
+  "color_theme": "Temă de culoare",
+  "theme_system": "Urmează sistemul",
+  "theme_light": "Luminos",
+  "theme_dark": "Întunecat"
 }

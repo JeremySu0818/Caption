@@ -81,5 +81,9 @@
   "error_translate_unsupported_lang": "ML Kit Translate pa sipòte lang: {tag}",
   "error_whisper_unsupported_lang": "Whisper pa sipòte lang: {tag}",
   "error_translate_source_unsupported": "ML Kit pa sipòte lang sous: {tag1} ({tag2})",
-  "error_translate_target_unsupported": "ML Kit pa sipòte lang sib: {tag1} ({tag2})"
+  "error_translate_target_unsupported": "ML Kit pa sipòte lang sib: {tag1} ({tag2})",
+  "color_theme": "Tèm koulè",
+  "theme_system": "Swiv sistèm nan",
+  "theme_light": "Klè",
+  "theme_dark": "Fènwa"
 }

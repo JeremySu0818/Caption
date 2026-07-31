@@ -81,5 +81,9 @@
   "error_translate_unsupported_lang": "ML ಕಿಟ್ ಅನುವಾದವು ಭಾಷೆಯನ್ನು ಬೆಂಬಲಿಸುವುದಿಲ್ಲ: {tag}",
   "error_whisper_unsupported_lang": "ವಿಸ್ಪರ್ ಭಾಷೆಯನ್ನು ಬೆಂಬಲಿಸುವುದಿಲ್ಲ: {tag}",
   "error_translate_source_unsupported": "ML ಕಿಟ್ ಮೂಲ ಭಾಷೆಯನ್ನು ಬೆಂಬಲಿಸುವುದಿಲ್ಲ: {tag1} ({tag2})",
-  "error_translate_target_unsupported": "ML ಕಿಟ್ ಗುರಿ ಭಾಷೆಯನ್ನು ಬೆಂಬಲಿಸುವುದಿಲ್ಲ: {tag1} ({tag2})"
+  "error_translate_target_unsupported": "ML ಕಿಟ್ ಗುರಿ ಭಾಷೆಯನ್ನು ಬೆಂಬಲಿಸುವುದಿಲ್ಲ: {tag1} ({tag2})",
+  "color_theme": "ಬಣ್ಣದ ಥೀಮ್",
+  "theme_system": "ಸಿಸ್ಟಂ ಅನುಸರಿಸಿ",
+  "theme_light": "ಲೈಟ್",
+  "theme_dark": "ಡಾರ್ಕ್"
 }

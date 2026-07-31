@@ -81,5 +81,9 @@
   "error_translate_unsupported_lang": "ML Kit Translate-ს არ აქვს ენის მხარდაჭერა: {tag}",
   "error_whisper_unsupported_lang": "Whisper არ უჭერს მხარს ენას: {tag}",
   "error_translate_source_unsupported": "ML Kit-ს არ აქვს საწყისი ენის მხარდაჭერა: {tag1} ({tag2})",
-  "error_translate_target_unsupported": "ML Kit არ უჭერს მხარს სამიზნე ენას: {tag1} ({tag2})"
+  "error_translate_target_unsupported": "ML Kit არ უჭერს მხარს სამიზნე ენას: {tag1} ({tag2})",
+  "color_theme": "ფერის თემა",
+  "theme_system": "სისტემის მიხედვით",
+  "theme_light": "ნათელი",
+  "theme_dark": "მუქი"
 }

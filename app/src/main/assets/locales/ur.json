@@ -81,5 +81,9 @@
   "error_translate_unsupported_lang": "ML Kit Translate اس زبان کو سپورٹ نہیں کرتا ہے: {tag}",
   "error_whisper_unsupported_lang": "سرگوشی زبان کی حمایت نہیں کرتی ہے: {tag}",
   "error_translate_source_unsupported": "ایم ایل کٹ ماخذ کی زبان کو سپورٹ نہیں کرتی ہے: {tag1} ({tag2})",
-  "error_translate_target_unsupported": "ایم ایل کٹ ہدف کی زبان کو سپورٹ نہیں کرتی ہے: {tag1} ({tag2})"
+  "error_translate_target_unsupported": "ایم ایل کٹ ہدف کی زبان کو سپورٹ نہیں کرتی ہے: {tag1} ({tag2})",
+  "color_theme": "رنگ تھیم",
+  "theme_system": "سسٹم کے مطابق",
+  "theme_light": "روشن",
+  "theme_dark": "گہرا"
 }

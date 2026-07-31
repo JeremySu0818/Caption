@@ -81,5 +81,9 @@
   "error_translate_unsupported_lang": "ML Kit Translate телне хупламый: {tag}",
   "error_whisper_unsupported_lang": "Пышылдау телне хупламый: {тег}",
   "error_translate_source_unsupported": "ML Kit чыганак телен хупламый: {tag1} ({tag2})",
-  "error_translate_target_unsupported": "ML Kit максатлы телне хупламый: {tag1} ({tag2})"
+  "error_translate_target_unsupported": "ML Kit максатлы телне хупламый: {tag1} ({tag2})",
+  "color_theme": "Төс темасы",
+  "theme_system": "Система буенча",
+  "theme_light": "Якты",
+  "theme_dark": "Караңгы"
 }

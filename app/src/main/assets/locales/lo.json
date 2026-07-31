@@ -81,5 +81,9 @@
   "error_translate_unsupported_lang": "ML Kit Translate ບໍ່ຮອງຮັບພາສາ: {tag}",
   "error_whisper_unsupported_lang": "Whisper ບໍ່ຮອງຮັບພາສາ: {tag}",
   "error_translate_source_unsupported": "ຊຸດ ML ບໍ່ຮອງຮັບພາສາຕົ້ນສະບັບ: {tag1} ({tag2})",
-  "error_translate_target_unsupported": "ຊຸດ ML ບໍ່ຮອງຮັບພາສາເປົ້າໝາຍ: {tag1} ({tag2})"
+  "error_translate_target_unsupported": "ຊຸດ ML ບໍ່ຮອງຮັບພາສາເປົ້າໝາຍ: {tag1} ({tag2})",
+  "color_theme": "ຮູບແບບສີ",
+  "theme_system": "ຕາມລະບົບ",
+  "theme_light": "ສະຫວ່າງ",
+  "theme_dark": "ມືດ"
 }

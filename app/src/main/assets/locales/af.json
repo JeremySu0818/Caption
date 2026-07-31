@@ -81,5 +81,9 @@
   "error_translate_unsupported_lang": "ML Kit Translate ondersteun nie taal nie: {tag}",
   "error_whisper_unsupported_lang": "Fluister ondersteun nie taal nie: {tag}",
   "error_translate_source_unsupported": "ML Kit ondersteun nie brontaal nie: {tag1} ({tag2})",
-  "error_translate_target_unsupported": "ML Kit ondersteun nie teikentaal nie: {tag1} ({tag2})"
+  "error_translate_target_unsupported": "ML Kit ondersteun nie teikentaal nie: {tag1} ({tag2})",
+  "color_theme": "Kleurtema",
+  "theme_system": "Volg stelsel",
+  "theme_light": "Lig",
+  "theme_dark": "Donker"
 }

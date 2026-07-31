@@ -81,5 +81,9 @@
   "error_translate_unsupported_lang": "ML Kit ژباړه د ژبې ملاتړ نه کوي: {tag}",
   "error_whisper_unsupported_lang": "Whisper د ژبې ملاتړ نه کوي: {tag}",
   "error_translate_source_unsupported": "ML Kit د سرچینې ژبې ملاتړ نه کوي: {tag1} ({tag2})",
-  "error_translate_target_unsupported": "ML Kit د هدف ژبې ملاتړ نه کوي: {tag1} ({tag2})"
+  "error_translate_target_unsupported": "ML Kit د هدف ژبې ملاتړ نه کوي: {tag1} ({tag2})",
+  "color_theme": "د رنګ بڼه",
+  "theme_system": "سیسټم تعقیب کړئ",
+  "theme_light": "روښانه",
+  "theme_dark": "تیاره"
 }

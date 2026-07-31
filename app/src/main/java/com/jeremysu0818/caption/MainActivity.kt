@@ -34,6 +34,7 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -48,7 +49,10 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -67,11 +71,12 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuDefaults
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.ProgressIndicatorDefaults
@@ -80,8 +85,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberTopAppBarState
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -90,10 +94,10 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -106,6 +110,7 @@ import com.jeremysu0818.caption.data.CaptionRuntimeState
 import com.jeremysu0818.caption.data.CaptionSettings
 import com.jeremysu0818.caption.data.I18n
 import com.jeremysu0818.caption.data.SpeechEngineOption
+import com.jeremysu0818.caption.data.ThemeMode
 import com.jeremysu0818.caption.data.WhisperModelOption
 import com.jeremysu0818.caption.data.t
 import com.jeremysu0818.caption.service.CaptionCaptureService
@@ -126,7 +131,13 @@ class MainActivity : ComponentActivity() {
             startRequestCount++
         }
         setContent {
-            CaptionTheme {
+            val settings by CaptionGraph.preferences.settings.collectAsState()
+            val darkTheme = when (settings.themeMode) {
+                ThemeMode.SYSTEM -> isSystemInDarkTheme()
+                ThemeMode.LIGHT -> false
+                ThemeMode.DARK -> true
+            }
+            CaptionTheme(darkTheme = darkTheme) {
                 CaptionApp(
                     startRequestCount = startRequestCount,
                     resumeCount = resumeCount,
@@ -166,7 +177,7 @@ private fun CaptionApp(
     val runtimeState by CaptionGraph.runtimeStore.state.collectAsState()
     val downloadState by CaptionGraph.modelRepository.downloadState.collectAsState()
     val scope = rememberCoroutineScope()
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
+    var selectedDestinationIndex by rememberSaveable { mutableIntStateOf(0) }
 
     var permissionRefresh by remember { mutableIntStateOf(0) }
     var pendingStart by remember { mutableStateOf(false) }
@@ -319,163 +330,338 @@ private fun CaptionApp(
     val allPermissionsGranted =
         accessibilityGranted && overlayGranted && recordGranted && notificationGranted
 
+    val selectedDestination = AppDestination.entries[selectedDestinationIndex]
+    val pageTransition = expressiveContentTransform()
+
     Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            LargeTopAppBar(
+            TopAppBar(
                 title = {
                     Text(
-                        text = "Caption",
-                        style = MaterialTheme.typography.headlineMediumEmphasized,
+                        text = t(selectedDestination.titleKey),
+                        style = MaterialTheme.typography.titleLargeEmphasized,
                     )
                 },
-                scrollBehavior = scrollBehavior,
+            )
+        },
+        bottomBar = {
+            ExpressiveNavigationBar(
+                selectedDestination = selectedDestination,
+                onDestinationSelected = { selectedDestinationIndex = it.ordinal },
             )
         },
     ) { innerPadding ->
-        LazyColumn(
+        AnimatedContent(
+            targetState = selectedDestination,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
-            contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 40.dp),
-        ) {
-            item {
-                Box(
-                    modifier = Modifier.fillMaxWidth(),
-                    contentAlignment = Alignment.TopCenter,
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .widthIn(max = 720.dp)
-                            .fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(20.dp),
+            transitionSpec = { pageTransition },
+            label = "app_destination",
+        ) { destination ->
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(
+                    start = 20.dp,
+                    end = 20.dp,
+                    top = 12.dp,
+                    bottom = 32.dp,
+                ),
+            ) {
+                item {
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.TopCenter,
                     ) {
-                        ControlCenterCard(
-                            runtimeState = runtimeState,
-                            isRunning = runtimeState.isRunning,
-                            canStart = accessibilityGranted && accessibilityConnected && overlayGranted && recordGranted,
-                            onStart = onStartRequested,
-                            onStop = { CaptionCaptureService.stop(context) },
-                        )
-
-                        AnimatedVisibility(
-                            visible = !allPermissionsGranted,
-                            enter = expressiveEnter(),
-                            exit = expressiveExit(),
+                        Column(
+                            modifier = Modifier
+                                .widthIn(max = 720.dp)
+                                .fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(
+                                if (destination == AppDestination.Home) 20.dp else 12.dp,
+                            ),
                         ) {
-                            PermissionAlertCard(
-                                overlayGranted = overlayGranted,
-                                recordGranted = recordGranted,
-                                notificationGranted = notificationGranted,
-                                accessibilityGranted = accessibilityGranted,
-                                onOpenAccessibilitySettings = {
-                                    accessibilityPrompted = true
-                                    accessibilitySettingsLauncher.launch(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
-                                },
-                                onOpenOverlaySettings = {
-                                    overlayPrompted = true
-                                    overlaySettingsLauncher.launch(context.overlaySettingsIntent())
-                                },
-                                onRequestRecord = {
-                                    recordPrompted = true
-                                    recordPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                                },
-                                onRequestNotifications = {
-                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                        notificationPrompted = true
-                                        notificationPermissionLauncher.launch(
-                                            Manifest.permission.POST_NOTIFICATIONS,
+                            when (destination) {
+                                AppDestination.Home -> {
+                                    ControlCenterCard(
+                                        runtimeState = runtimeState,
+                                        isRunning = runtimeState.isRunning,
+                                        canStart = accessibilityGranted && accessibilityConnected &&
+                                            overlayGranted && recordGranted,
+                                        onStart = onStartRequested,
+                                        onStop = { CaptionCaptureService.stop(context) },
+                                    )
+
+                                    AnimatedVisibility(
+                                        visible = !allPermissionsGranted,
+                                        enter = expressiveEnter(),
+                                        exit = expressiveExit(),
+                                    ) {
+                                        PermissionAlertCard(
+                                            overlayGranted = overlayGranted,
+                                            recordGranted = recordGranted,
+                                            notificationGranted = notificationGranted,
+                                            accessibilityGranted = accessibilityGranted,
+                                            onOpenAccessibilitySettings = {
+                                                accessibilityPrompted = true
+                                                accessibilitySettingsLauncher.launch(
+                                                    Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS),
+                                                )
+                                            },
+                                            onOpenOverlaySettings = {
+                                                overlayPrompted = true
+                                                overlaySettingsLauncher.launch(context.overlaySettingsIntent())
+                                            },
+                                            onRequestRecord = {
+                                                recordPrompted = true
+                                                recordPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                                            },
+                                            onRequestNotifications = {
+                                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                                    notificationPrompted = true
+                                                    notificationPermissionLauncher.launch(
+                                                        Manifest.permission.POST_NOTIFICATIONS,
+                                                    )
+                                                }
+                                            },
                                         )
                                     }
-                                },
-                            )
-                        }
 
-                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            SettingsHeading()
-
-                            SettingsCard(
-                                icon = R.drawable.sym_settings,
-                                title = t("speech_engine"),
-                            ) {
-                                SpeechEngineSection(
-                                    settings = settings,
-                                    isMlKitAdvancedAvailable = isMlKitAdvancedAvailable != false,
-                                    onEngineSelected = CaptionGraph.preferences::updateSpeechEngine,
-                                    onUnsupportedAdvancedSelected = {
-                                        Toast.makeText(
-                                            context,
-                                            I18n.getString("mlkit_advanced_unsupported"),
-                                            Toast.LENGTH_SHORT,
-                                        ).show()
-                                    },
-                                )
-                            }
-
-                            AnimatedVisibility(
-                                visible = settings.speechEngine == SpeechEngineOption.WHISPER,
-                                enter = expressiveEnter(),
-                                exit = expressiveExit(),
-                            ) {
-                                SettingsCard(
-                                    icon = R.drawable.sym_download,
-                                    title = t("whisper_model"),
-                                ) {
-                                    WhisperModelSection(
+                                    QuickSettingsCard(
                                         settings = settings,
-                                        downloadState = downloadState,
-                                        onModelSelected = CaptionGraph.preferences::updateModel,
-                                        onDownloadModel = {
-                                            downloadJob = scope.launch {
-                                                try {
-                                                    CaptionGraph.modelRepository.ensureModel(settings.model)
-                                                } finally {
-                                                    downloadJob = null
-                                                }
-                                            }
-                                        },
-                                        onCancelDownload = {
-                                            downloadJob?.cancel()
-                                            downloadJob = null
-                                        },
-                                        onDeleteModel = {
-                                            scope.launch {
-                                                CaptionGraph.modelRepository.deleteModel(settings.model)
-                                            }
-                                        },
+                                        isMlKitAdvancedAvailable = isMlKitAdvancedAvailable != false,
+                                        onTranslationEnabledChanged =
+                                            CaptionGraph.preferences::updateTranslationEnabled,
+                                        onEngineSelected = CaptionGraph.preferences::updateSpeechEngine,
                                     )
                                 }
-                            }
 
-                            SettingsCard(
-                                icon = R.drawable.sym_translate,
-                                title = t("local_translation"),
-                                trailingContent = {
-                                    Switch(
-                                        checked = settings.translationEnabled,
-                                        onCheckedChange = CaptionGraph.preferences::updateTranslationEnabled,
-                                    )
-                                },
-                            ) {
-                                TranslationSection(
-                                    settings = settings,
-                                    onSourceChanged = CaptionGraph.preferences::updateSourceLanguage,
-                                    onTargetChanged = CaptionGraph.preferences::updateTargetLanguage,
-                                )
-                            }
+                                AppDestination.Settings -> {
+                                    SettingsCard(
+                                        icon = R.drawable.sym_settings,
+                                        title = t("speech_engine"),
+                                    ) {
+                                        SpeechEngineSection(
+                                            settings = settings,
+                                            isMlKitAdvancedAvailable = isMlKitAdvancedAvailable != false,
+                                            onEngineSelected = CaptionGraph.preferences::updateSpeechEngine,
+                                            onUnsupportedAdvancedSelected = {
+                                                Toast.makeText(
+                                                    context,
+                                                    I18n.getString("mlkit_advanced_unsupported"),
+                                                    Toast.LENGTH_SHORT,
+                                                ).show()
+                                            },
+                                        )
+                                    }
 
-                            SettingsCard(
-                                icon = R.drawable.sym_language,
-                                title = t("ui_language"),
-                            ) {
-                                UiLanguageSection(
-                                    settings = settings,
-                                    onLanguageSelected = CaptionGraph.preferences::updateUiLanguage,
-                                )
+                                    AnimatedVisibility(
+                                        visible = settings.speechEngine == SpeechEngineOption.WHISPER,
+                                        enter = expressiveEnter(),
+                                        exit = expressiveExit(),
+                                    ) {
+                                        SettingsCard(
+                                            icon = R.drawable.sym_download,
+                                            title = t("whisper_model"),
+                                        ) {
+                                            WhisperModelSection(
+                                                settings = settings,
+                                                downloadState = downloadState,
+                                                onModelSelected = CaptionGraph.preferences::updateModel,
+                                                onDownloadModel = {
+                                                    downloadJob = scope.launch {
+                                                        try {
+                                                            CaptionGraph.modelRepository.ensureModel(settings.model)
+                                                        } finally {
+                                                            downloadJob = null
+                                                        }
+                                                    }
+                                                },
+                                                onCancelDownload = {
+                                                    downloadJob?.cancel()
+                                                    downloadJob = null
+                                                },
+                                                onDeleteModel = {
+                                                    scope.launch {
+                                                        CaptionGraph.modelRepository.deleteModel(settings.model)
+                                                    }
+                                                },
+                                            )
+                                        }
+                                    }
+
+                                    SettingsCard(
+                                        icon = R.drawable.sym_translate,
+                                        title = t("local_translation"),
+                                        trailingContent = {
+                                            Switch(
+                                                checked = settings.translationEnabled,
+                                                onCheckedChange = CaptionGraph.preferences::updateTranslationEnabled,
+                                            )
+                                        },
+                                    ) {
+                                        TranslationSection(
+                                            settings = settings,
+                                            onSourceChanged = CaptionGraph.preferences::updateSourceLanguage,
+                                            onTargetChanged = CaptionGraph.preferences::updateTargetLanguage,
+                                        )
+                                    }
+
+                                    SettingsCard(
+                                        icon = R.drawable.sym_language,
+                                        title = t("ui_language"),
+                                    ) {
+                                        UiLanguageSection(
+                                            settings = settings,
+                                            onLanguageSelected = CaptionGraph.preferences::updateUiLanguage,
+                                        )
+                                    }
+
+                                    SettingsCard(
+                                        icon = R.drawable.sym_palette,
+                                        title = t("color_theme"),
+                                    ) {
+                                        ThemeModeSection(
+                                            settings = settings,
+                                            onThemeModeSelected = CaptionGraph.preferences::updateThemeMode,
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+private enum class AppDestination(
+    val titleKey: String,
+    @param:DrawableRes val icon: Int,
+) {
+    Home("app_name", R.drawable.sym_home),
+    Settings("settings", R.drawable.sym_settings),
+}
+
+@Composable
+private fun ExpressiveNavigationBar(
+    selectedDestination: AppDestination,
+    onDestinationSelected: (AppDestination) -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .navigationBarsPadding()
+            .padding(horizontal = 20.dp, vertical = 10.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        NavigationBar(
+            modifier = Modifier
+                .widthIn(max = 720.dp)
+                .fillMaxWidth()
+                .clip(MaterialTheme.shapes.extraLargeIncreased),
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            tonalElevation = 6.dp,
+            windowInsets = WindowInsets(0, 0, 0, 0),
+        ) {
+            AppDestination.entries.forEach { destination ->
+                NavigationBarItem(
+                    selected = destination == selectedDestination,
+                    onClick = { onDestinationSelected(destination) },
+                    icon = {
+                        Icon(
+                            painter = painterResource(destination.icon),
+                            contentDescription = null,
+                        )
+                    },
+                    label = { Text(t(destination.titleKey)) },
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun QuickSettingsCard(
+    settings: CaptionSettings,
+    isMlKitAdvancedAvailable: Boolean,
+    onTranslationEnabledChanged: (Boolean) -> Unit,
+    onEngineSelected: (SpeechEngineOption) -> Unit,
+) {
+    val colorScheme = MaterialTheme.colorScheme
+    val motionScheme = MaterialTheme.motionScheme
+    val engines = remember(isMlKitAdvancedAvailable) {
+        SpeechEngineOption.entries
+            .filter { option ->
+                option != SpeechEngineOption.MLKIT_ADVANCED || isMlKitAdvancedAvailable
+            }
+            .map { option -> CaptionLanguage(tag = option.id, label = option.label) }
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.largeIncreased,
+        colors = CardDefaults.cardColors(containerColor = colorScheme.surfaceContainerLow),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .animateContentSize(animationSpec = motionScheme.defaultSpatialSpec()),
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 20.dp, top = 16.dp, end = 16.dp, bottom = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Surface(
+                    modifier = Modifier.size(40.dp),
+                    shape = CircleShape,
+                    color = colorScheme.secondaryContainer,
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            painter = painterResource(R.drawable.sym_translate),
+                            contentDescription = null,
+                            tint = colorScheme.onSecondaryContainer,
+                        )
+                    }
+                }
+                Text(
+                    text = t("local_translation"),
+                    style = MaterialTheme.typography.titleMediumEmphasized,
+                    modifier = Modifier.weight(1f),
+                )
+                Switch(
+                    checked = settings.translationEnabled,
+                    onCheckedChange = onTranslationEnabledChanged,
+                )
+            }
+
+            HorizontalDivider(color = colorScheme.outlineVariant.copy(alpha = 0.45f))
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(
+                    text = t("speech_engine"),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = colorScheme.onSurfaceVariant,
+                )
+                LanguageDropdown(
+                    selectedTag = settings.speechEngine.id,
+                    selectedLabel = settings.speechEngine.label,
+                    languages = engines,
+                    onSelected = { selectedId ->
+                        onEngineSelected(SpeechEngineOption.fromId(selectedId))
+                    },
+                )
             }
         }
     }
@@ -1397,6 +1583,24 @@ private fun UiLanguageSection(
         },
         languages = languages,
         onSelected = onLanguageSelected,
+    )
+}
+
+@Composable
+private fun ThemeModeSection(
+    settings: CaptionSettings,
+    onThemeModeSelected: (ThemeMode) -> Unit,
+) {
+    val themeModes = ThemeMode.entries.map { themeMode ->
+        CaptionLanguage(tag = themeMode.id, label = t(themeMode.labelKey))
+    }
+    LanguageDropdown(
+        selectedTag = settings.themeMode.id,
+        selectedLabel = t(settings.themeMode.labelKey),
+        languages = themeModes,
+        onSelected = { selectedId ->
+            onThemeModeSelected(ThemeMode.fromId(selectedId))
+        },
     )
 }
 

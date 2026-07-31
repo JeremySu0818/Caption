@@ -81,5 +81,9 @@
   "error_translate_unsupported_lang": "ML Kit Translate забонро дастгирӣ намекунад: {tag}",
   "error_whisper_unsupported_lang": "Whisper забонро дастгирӣ намекунад: {tag}",
   "error_translate_source_unsupported": "ML Kit забони сарчашмаро дастгирӣ намекунад: {tag1} ({tag2})",
-  "error_translate_target_unsupported": "ML Kit забони мавриди ҳадафро дастгирӣ намекунад: {tag1} ({tag2})"
+  "error_translate_target_unsupported": "ML Kit забони мавриди ҳадафро дастгирӣ намекунад: {tag1} ({tag2})",
+  "color_theme": "Мавзӯи ранг",
+  "theme_system": "Аз рӯи система",
+  "theme_light": "Равшан",
+  "theme_dark": "Торик"
 }

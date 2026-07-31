@@ -81,5 +81,9 @@
   "error_translate_unsupported_lang": "МЛ Кит Транслате не подржава језик: {таг}",
   "error_whisper_unsupported_lang": "Шапат не подржава језик: {таг}",
   "error_translate_source_unsupported": "МЛ Кит не подржава изворни језик: {таг1} ({таг2})",
-  "error_translate_target_unsupported": "МЛ Кит не подржава циљни језик: {таг1} ({таг2})"
+  "error_translate_target_unsupported": "МЛ Кит не подржава циљни језик: {таг1} ({таг2})",
+  "color_theme": "Тема боја",
+  "theme_system": "Прати систем",
+  "theme_light": "Светла",
+  "theme_dark": "Тамна"
 }

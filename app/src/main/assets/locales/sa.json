@@ -81,5 +81,9 @@
   "error_translate_unsupported_lang": "ML Kit Translate भाषायाः समर्थनं न करोति: {tag}",
   "error_whisper_unsupported_lang": "Whisper भाषायाः समर्थनं न करोति: {tag}",
   "error_translate_source_unsupported": "ML Kit स्रोतभाषायाः समर्थनं न करोति: {tag1} ({tag2})",
-  "error_translate_target_unsupported": "ML Kit लक्ष्यभाषायाः समर्थनं न करोति: {tag1} ({tag2})"
+  "error_translate_target_unsupported": "ML Kit लक्ष्यभाषायाः समर्थनं न करोति: {tag1} ({tag2})",
+  "color_theme": "वर्णविषयः",
+  "theme_system": "प्रणालीम् अनुसरतु",
+  "theme_light": "प्रकाशः",
+  "theme_dark": "अन्धकारः"
 }

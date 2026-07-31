@@ -81,5 +81,9 @@
   "error_translate_unsupported_lang": "ML Kit Translate no admet l'idioma: {tag}",
   "error_whisper_unsupported_lang": "Whisper no admet l'idioma: {tag}",
   "error_translate_source_unsupported": "ML Kit no admet l'idioma font: {tag1} ({tag2})",
-  "error_translate_target_unsupported": "ML Kit no admet l'idioma de destinació: {tag1} ({tag2})"
+  "error_translate_target_unsupported": "ML Kit no admet l'idioma de destinació: {tag1} ({tag2})",
+  "color_theme": "Tema de color",
+  "theme_system": "Segueix el sistema",
+  "theme_light": "Clar",
+  "theme_dark": "Fosc"
 }

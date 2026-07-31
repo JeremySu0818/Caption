@@ -81,5 +81,9 @@
   "error_translate_unsupported_lang": "ML Kit Translate از زبان پشتیبانی نمی کند: {tag}",
   "error_whisper_unsupported_lang": "Whisper از زبان پشتیبانی نمی کند: {tag}",
   "error_translate_source_unsupported": "کیت ML از زبان مبدأ پشتیبانی نمی‌کند: {tag1} ({tag2})",
-  "error_translate_target_unsupported": "کیت ML از زبان مقصد پشتیبانی نمی کند: {tag1} ({tag2})"
+  "error_translate_target_unsupported": "کیت ML از زبان مقصد پشتیبانی نمی کند: {tag1} ({tag2})",
+  "color_theme": "طرح رنگی",
+  "theme_system": "پیروی از سیستم",
+  "theme_light": "روشن",
+  "theme_dark": "تیره"
 }

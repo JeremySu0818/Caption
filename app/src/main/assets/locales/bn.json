@@ -81,5 +81,9 @@
   "error_translate_unsupported_lang": "এমএল কিট অনুবাদ ভাষা সমর্থন করে না: {tag}",
   "error_whisper_unsupported_lang": "হুইস্পার ভাষা সমর্থন করে না: {tag}",
   "error_translate_source_unsupported": "এমএল কিট উৎস ভাষা সমর্থন করে না: {tag1} ({tag2})",
-  "error_translate_target_unsupported": "এমএল কিট লক্ষ্য ভাষা সমর্থন করে না: {tag1} ({tag2})"
+  "error_translate_target_unsupported": "এমএল কিট লক্ষ্য ভাষা সমর্থন করে না: {tag1} ({tag2})",
+  "color_theme": "রঙের থিম",
+  "theme_system": "সিস্টেম অনুসরণ করুন",
+  "theme_light": "হালকা",
+  "theme_dark": "গাঢ়"
 }

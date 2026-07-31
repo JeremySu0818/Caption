@@ -81,5 +81,9 @@
   "error_translate_unsupported_lang": "Nid yw ML Kit Translate yn cefnogi iaith: {tag}",
   "error_whisper_unsupported_lang": "Nid yw Whisper yn cefnogi iaith: {tag}",
   "error_translate_source_unsupported": "Nid yw ML Kit yn cefnogi iaith ffynhonnell: {tag1} ({tag2})",
-  "error_translate_target_unsupported": "Nid yw ML Kit yn cefnogi iaith darged: {tag1} ({tag2})"
+  "error_translate_target_unsupported": "Nid yw ML Kit yn cefnogi iaith darged: {tag1} ({tag2})",
+  "color_theme": "Thema lliw",
+  "theme_system": "Dilyn y system",
+  "theme_light": "Golau",
+  "theme_dark": "Tywyll"
 }

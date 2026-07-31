@@ -81,5 +81,9 @@
   "error_translate_unsupported_lang": "ML Kit Translate ne skor ket ar yezh : {tag}",
   "error_whisper_unsupported_lang": "N'eo ket skoret ar yezh gant Whisper : {tag}",
   "error_translate_source_unsupported": "N'eo ket skoret gant ML Kit ar yezh orin : {tag1} ({tag2})",
-  "error_translate_target_unsupported": "N'eo ket skoret gant ML Kit ar yezh tarzh : {tag1} ({tag2})"
+  "error_translate_target_unsupported": "N'eo ket skoret gant ML Kit ar yezh tarzh : {tag1} ({tag2})",
+  "color_theme": "Neuz al livioù",
+  "theme_system": "Heuliañ ar reizhiad",
+  "theme_light": "Sklaer",
+  "theme_dark": "Teñval"
 }

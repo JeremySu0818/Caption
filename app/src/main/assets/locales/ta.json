@@ -81,5 +81,9 @@
   "error_translate_unsupported_lang": "ML Kit Translate மொழியை ஆதரிக்காது: {tag}",
   "error_whisper_unsupported_lang": "விஸ்பர் மொழியை ஆதரிக்காது: {tag}",
   "error_translate_source_unsupported": "ML Kit மூல மொழியை ஆதரிக்காது: {tag1} ({tag2})",
-  "error_translate_target_unsupported": "ML கிட் இலக்கு மொழியை ஆதரிக்காது: {tag1} ({tag2})"
+  "error_translate_target_unsupported": "ML கிட் இலக்கு மொழியை ஆதரிக்காது: {tag1} ({tag2})",
+  "color_theme": "வண்ணத் தீம்",
+  "theme_system": "கணினியைப் பின்பற்று",
+  "theme_light": "வெளிச்சம்",
+  "theme_dark": "இருள்"
 }

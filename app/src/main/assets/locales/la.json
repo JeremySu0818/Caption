@@ -81,5 +81,9 @@
   "error_translate_unsupported_lang": "ML Kit Translate linguam non adiuvat: {tag}",
   "error_whisper_unsupported_lang": "Susurro linguam non suscipit: {tag}",
   "error_translate_source_unsupported": "ML Ornamentum fons lingua non adiuvat: {tag1} ({tag2})",
-  "error_translate_target_unsupported": "ML Ornamentum scopum linguam non sustinet: {tag1} ({tag2})"
+  "error_translate_target_unsupported": "ML Ornamentum scopum linguam non sustinet: {tag1} ({tag2})",
+  "color_theme": "Thema colorum",
+  "theme_system": "Systema sequi",
+  "theme_light": "Clara",
+  "theme_dark": "Obscura"
 }

@@ -81,5 +81,9 @@
   "error_translate_unsupported_lang": "ML Kit Tafsiri haitumii lugha: {tag}",
   "error_whisper_unsupported_lang": "Lugha ya kunong'ona haiauni lugha: {tag}",
   "error_translate_source_unsupported": "ML Kit haitumii lugha chanzo: {tag1} ({tag2})",
-  "error_translate_target_unsupported": "ML Kit haitumii lugha lengwa: {tag1} ({tag2})"
+  "error_translate_target_unsupported": "ML Kit haitumii lugha lengwa: {tag1} ({tag2})",
+  "color_theme": "Mandhari ya rangi",
+  "theme_system": "Fuata mfumo",
+  "theme_light": "Angavu",
+  "theme_dark": "Giza"
 }

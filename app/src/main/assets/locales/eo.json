@@ -81,5 +81,9 @@
   "error_translate_unsupported_lang": "ML Kit Translate ne subtenas lingvon: {tag}",
   "error_whisper_unsupported_lang": "Flustro ne subtenas lingvon: {tag}",
   "error_translate_source_unsupported": "ML Kit ne subtenas fontlingvon: {tag1} ({tag2})",
-  "error_translate_target_unsupported": "ML Kit ne subtenas cellingvon: {tag1} ({tag2})"
+  "error_translate_target_unsupported": "ML Kit ne subtenas cellingvon: {tag1} ({tag2})",
+  "color_theme": "Kolora etoso",
+  "theme_system": "Laŭ la sistemo",
+  "theme_light": "Hela",
+  "theme_dark": "Malhela"
 }

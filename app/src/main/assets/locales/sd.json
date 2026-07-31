@@ -81,5 +81,9 @@
   "error_translate_unsupported_lang": "ML Kit ترجمو ٻولي کي سپورٽ نٿو ڏئي: {tag}",
   "error_whisper_unsupported_lang": "ويسپر ٻولي کي سپورٽ نٿو ڏئي: {tag}",
   "error_translate_source_unsupported": "ML Kit ماخذ ٻولي کي سپورٽ نٿو ڪري: {tag1} ({tag2})",
-  "error_translate_target_unsupported": "ML Kit ھدف جي ٻولي کي سپورٽ نٿو ڪري: {tag1} ({tag2})"
+  "error_translate_target_unsupported": "ML Kit ھدف جي ٻولي کي سپورٽ نٿو ڪري: {tag1} ({tag2})",
+  "color_theme": "رنگ موضوع",
+  "theme_system": "سسٽم جي پيروي ڪريو",
+  "theme_light": "هلڪو",
+  "theme_dark": "اونداهو"
 }

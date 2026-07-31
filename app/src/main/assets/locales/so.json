@@ -81,5 +81,9 @@
   "error_translate_unsupported_lang": "ML Kit Translate ma taageerto luqadda: {tag}",
   "error_whisper_unsupported_lang": "Shaqsigu ma taageero luqadda: {tag}",
   "error_translate_source_unsupported": "ML Kit ma taageero luqadda isha: {tag1} ({tag2})",
-  "error_translate_target_unsupported": "ML Kit ma taageerayo luqadda la beegsanayo: {tag1} ({tag2})"
+  "error_translate_target_unsupported": "ML Kit ma taageerayo luqadda la beegsanayo: {tag1} ({tag2})",
+  "color_theme": "Mawduuca midabka",
+  "theme_system": "Raac nidaamka",
+  "theme_light": "Iftiin",
+  "theme_dark": "Mugdi"
 }

@@ -81,5 +81,9 @@
   "error_translate_unsupported_lang": "ML Kit Translate ma jappoġġjax lingwa: {tag}",
   "error_whisper_unsupported_lang": "Whisper ma jappoġġjax lingwa: {tag}",
   "error_translate_source_unsupported": "ML Kit ma jappoġġjax il-lingwa tas-sors: {tag1} ({tag2})",
-  "error_translate_target_unsupported": "ML Kit ma jappoġġjax il-lingwa fil-mira: {tag1} ({tag2})"
+  "error_translate_target_unsupported": "ML Kit ma jappoġġjax il-lingwa fil-mira: {tag1} ({tag2})",
+  "color_theme": "Tema tal-kulur",
+  "theme_system": "Segwi s-sistema",
+  "theme_light": "Ċar",
+  "theme_dark": "Skur"
 }

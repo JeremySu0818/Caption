@@ -81,5 +81,9 @@
   "error_translate_unsupported_lang": "ML Kit Terjime dili goldamaýar: {tag}",
   "error_whisper_unsupported_lang": "Pyşyrdy dili goldamaýar: {tag}",
   "error_translate_source_unsupported": "ML Kit çeşme dilini goldamaýar: {tag1} ({tag2})",
-  "error_translate_target_unsupported": "ML Kit maksatly dili goldamaýar: {tag1} ({tag2})"
+  "error_translate_target_unsupported": "ML Kit maksatly dili goldamaýar: {tag1} ({tag2})",
+  "color_theme": "Reňk temasy",
+  "theme_system": "Ulgamy yzarla",
+  "theme_light": "Açyk",
+  "theme_dark": "Garaňky"
 }

@@ -81,5 +81,9 @@
   "error_translate_unsupported_lang": "ML Kit Translate אינו תומך בשפה: {tag}",
   "error_whisper_unsupported_lang": "Whisper לא תומך בשפה: {tag}",
   "error_translate_source_unsupported": "ערכת ML אינה תומכת בשפת מקור: {tag1} ({tag2})",
-  "error_translate_target_unsupported": "ערכת ML אינה תומכת בשפת יעד: {tag1} ({tag2})"
+  "error_translate_target_unsupported": "ערכת ML אינה תומכת בשפת יעד: {tag1} ({tag2})",
+  "color_theme": "ערכת צבעים",
+  "theme_system": "בהתאם למערכת",
+  "theme_light": "בהיר",
+  "theme_dark": "כהה"
 }

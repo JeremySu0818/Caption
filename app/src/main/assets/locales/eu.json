@@ -81,5 +81,9 @@
   "error_translate_unsupported_lang": "ML Kit Translate-k ez du hizkuntza onartzen: {tag}",
   "error_whisper_unsupported_lang": "Whisper-ek ez du hizkuntza onartzen: {tag}",
   "error_translate_source_unsupported": "ML Kit-ak ez du iturburu-hizkuntza onartzen: {tag1} ({tag2})",
-  "error_translate_target_unsupported": "ML Kit-ak ez du xede-hizkuntza onartzen: {tag1} ({tag2})"
+  "error_translate_target_unsupported": "ML Kit-ak ez du xede-hizkuntza onartzen: {tag1} ({tag2})",
+  "color_theme": "Kolore-gaia",
+  "theme_system": "Jarraitu sistema",
+  "theme_light": "Argia",
+  "theme_dark": "Iluna"
 }

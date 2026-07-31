@@ -81,5 +81,9 @@
   "error_translate_unsupported_lang": "Ko te Whakamaori ML Kit kaore i te tautoko i te reo: {tag}",
   "error_whisper_unsupported_lang": "Karekau te muhumuhu e tautoko i te reo: {tag}",
   "error_translate_source_unsupported": "Kaore a ML Kit e tautoko i te reo puna: {tag1} ({tag2})",
-  "error_translate_target_unsupported": "Kāore a ML Kit i te tautoko i te reo i whäia: {tag1} ({tag2})"
+  "error_translate_target_unsupported": "Kāore a ML Kit i te tautoko i te reo i whäia: {tag1} ({tag2})",
+  "color_theme": "Kaupapa tae",
+  "theme_system": "Whāia te pūnaha",
+  "theme_light": "Mārama",
+  "theme_dark": "Pōuri"
 }

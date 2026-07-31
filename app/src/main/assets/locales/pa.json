@@ -81,5 +81,9 @@
   "error_translate_unsupported_lang": "ML ਕਿੱਟ ਅਨੁਵਾਦ ਭਾਸ਼ਾ ਦਾ ਸਮਰਥਨ ਨਹੀਂ ਕਰਦਾ: {tag}",
   "error_whisper_unsupported_lang": "ਵਿਸਪਰ ਭਾਸ਼ਾ ਦਾ ਸਮਰਥਨ ਨਹੀਂ ਕਰਦਾ: {tag}",
   "error_translate_source_unsupported": "ML ਕਿੱਟ ਸਰੋਤ ਭਾਸ਼ਾ ਦਾ ਸਮਰਥਨ ਨਹੀਂ ਕਰਦੀ: {tag1} ({tag2})",
-  "error_translate_target_unsupported": "ML ਕਿੱਟ ਟੀਚਾ ਭਾਸ਼ਾ ਦਾ ਸਮਰਥਨ ਨਹੀਂ ਕਰਦੀ: {tag1} ({tag2})"
+  "error_translate_target_unsupported": "ML ਕਿੱਟ ਟੀਚਾ ਭਾਸ਼ਾ ਦਾ ਸਮਰਥਨ ਨਹੀਂ ਕਰਦੀ: {tag1} ({tag2})",
+  "color_theme": "ਰੰਗ ਥੀਮ",
+  "theme_system": "ਸਿਸਟਮ ਮੁਤਾਬਕ",
+  "theme_light": "ਹਲਕਾ",
+  "theme_dark": "ਗੂੜ੍ਹਾ"
 }

@@ -81,5 +81,9 @@
   "error_translate_unsupported_lang": "ML Kit Translate שטיצט נישט שפּראַך: {tag}",
   "error_whisper_unsupported_lang": "שושקען שטיצט נישט שפּראַך: {טאַג}",
   "error_translate_source_unsupported": "ML Kit שטיצט נישט מקור שפּראַך: {tag1} ({tag2})",
-  "error_translate_target_unsupported": "ML Kit שטיצט נישט ציל שפּראַך: {tag1} ({tag2})"
+  "error_translate_target_unsupported": "ML Kit שטיצט נישט ציל שפּראַך: {tag1} ({tag2})",
+  "color_theme": "קאָליר טעמע",
+  "theme_system": "לויטן סיסטעם",
+  "theme_light": "ליכט",
+  "theme_dark": "טונקל"
 }

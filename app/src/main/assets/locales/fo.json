@@ -81,5 +81,9 @@
   "error_translate_unsupported_lang": "ML Kit Translate stuðlar ikki máli: {tag}",
   "error_whisper_unsupported_lang": "Whisper stuðlar ikki máli: {tag}",
   "error_translate_source_unsupported": "ML Kit stuðlar ikki keldumálinum: {merki1} ({merki2})",
-  "error_translate_target_unsupported": "ML Kit stuðlar ikki málmálinum: {merki1} ({merki2})"
+  "error_translate_target_unsupported": "ML Kit stuðlar ikki málmálinum: {merki1} ({merki2})",
+  "color_theme": "Littema",
+  "theme_system": "Fylg skipanini",
+  "theme_light": "Ljóst",
+  "theme_dark": "Myrkt"
 }

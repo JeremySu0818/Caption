@@ -81,5 +81,9 @@
   "error_translate_unsupported_lang": "ML Kit Translate хэлийг дэмждэггүй: {tag}",
   "error_whisper_unsupported_lang": "Whisper хэлийг дэмждэггүй: {tag}",
   "error_translate_source_unsupported": "ML Kit нь эх хэлийг дэмждэггүй: {tag1} ({tag2})",
-  "error_translate_target_unsupported": "ML Kit зорилтот хэлийг дэмждэггүй: {tag1} ({tag2})"
+  "error_translate_target_unsupported": "ML Kit зорилтот хэлийг дэмждэггүй: {tag1} ({tag2})",
+  "color_theme": "Өнгөний загвар",
+  "theme_system": "Системийг дагах",
+  "theme_light": "Цайвар",
+  "theme_dark": "Бараан"
 }

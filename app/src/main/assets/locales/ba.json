@@ -81,5 +81,9 @@
   "error_translate_unsupported_lang": "ML Kit Translate телен ҡабул итмәй: {tag}",
   "error_whisper_unsupported_lang": "Whisper телде ҡабул итмәй: {tag}",
   "error_translate_source_unsupported": "ML Kit сығанаҡ телен ҡабул итмәй: {tag1} ({tag2})",
-  "error_translate_target_unsupported": "ML комплекты маҡсатлы телде ҡабул итмәй: {tag1} ({tag2})"
+  "error_translate_target_unsupported": "ML комплекты маҡсатлы телде ҡабул итмәй: {tag1} ({tag2})",
+  "color_theme": "Төҫ темаһы",
+  "theme_system": "Системаға эйәреү",
+  "theme_light": "Яҡты",
+  "theme_dark": "Ҡараңғы"
 }

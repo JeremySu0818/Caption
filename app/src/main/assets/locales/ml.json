@@ -81,5 +81,9 @@
   "error_translate_unsupported_lang": "ML കിറ്റ് വിവർത്തനം ഭാഷയെ പിന്തുണയ്ക്കുന്നില്ല: {tag}",
   "error_whisper_unsupported_lang": "വിസ്പർ ഭാഷയെ പിന്തുണയ്ക്കുന്നില്ല: {tag}",
   "error_translate_source_unsupported": "ML കിറ്റ് ഉറവിട ഭാഷയെ പിന്തുണയ്ക്കുന്നില്ല: {tag1} ({tag2})",
-  "error_translate_target_unsupported": "ML കിറ്റ് ടാർഗെറ്റ് ഭാഷയെ പിന്തുണയ്ക്കുന്നില്ല: {tag1} ({tag2})"
+  "error_translate_target_unsupported": "ML കിറ്റ് ടാർഗെറ്റ് ഭാഷയെ പിന്തുണയ്ക്കുന്നില്ല: {tag1} ({tag2})",
+  "color_theme": "വർണ്ണ തീം",
+  "theme_system": "സിസ്റ്റം പിന്തുടരുക",
+  "theme_light": "ലൈറ്റ്",
+  "theme_dark": "ഡാർക്ക്"
 }

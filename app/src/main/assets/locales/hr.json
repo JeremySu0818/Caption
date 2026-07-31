@@ -81,5 +81,9 @@
   "error_translate_unsupported_lang": "ML Kit Translate ne podržava jezik: {tag}",
   "error_whisper_unsupported_lang": "Whisper ne podržava jezik: {tag}",
   "error_translate_source_unsupported": "ML Kit ne podržava izvorni jezik: {tag1} ({tag2})",
-  "error_translate_target_unsupported": "ML Kit ne podržava ciljni jezik: {tag1} ({tag2})"
+  "error_translate_target_unsupported": "ML Kit ne podržava ciljni jezik: {tag1} ({tag2})",
+  "color_theme": "Tema boja",
+  "theme_system": "Prati sustav",
+  "theme_light": "Svijetla",
+  "theme_dark": "Tamna"
 }

@@ -81,5 +81,9 @@
   "error_translate_unsupported_lang": "Překladač ML Kit nepodporuje jazyk: {tag}",
   "error_whisper_unsupported_lang": "Whisper nepodporuje jazyk: {tag}",
   "error_translate_source_unsupported": "ML Kit nepodporuje zdrojový jazyk: {tag1} ({tag2})",
-  "error_translate_target_unsupported": "ML Kit nepodporuje cílový jazyk: {tag1} ({tag2})"
+  "error_translate_target_unsupported": "ML Kit nepodporuje cílový jazyk: {tag1} ({tag2})",
+  "color_theme": "Barevný motiv",
+  "theme_system": "Podle systému",
+  "theme_light": "Světlý",
+  "theme_dark": "Tmavý"
 }

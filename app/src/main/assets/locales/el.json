@@ -81,5 +81,9 @@
   "error_translate_unsupported_lang": "Το ML Kit Translate δεν υποστηρίζει γλώσσα: {tag}",
   "error_whisper_unsupported_lang": "Το Whisper δεν υποστηρίζει γλώσσα: {tag}",
   "error_translate_source_unsupported": "Το ML Kit δεν υποστηρίζει τη γλώσσα πηγής: {tag1} ({tag2})",
-  "error_translate_target_unsupported": "Το ML Kit δεν υποστηρίζει τη γλώσσα-στόχο: {tag1} ({tag2})"
+  "error_translate_target_unsupported": "Το ML Kit δεν υποστηρίζει τη γλώσσα-στόχο: {tag1} ({tag2})",
+  "color_theme": "Χρωματικό θέμα",
+  "theme_system": "Ακολουθήστε το σύστημα",
+  "theme_light": "Φωτεινό",
+  "theme_dark": "Σκούρο"
 }

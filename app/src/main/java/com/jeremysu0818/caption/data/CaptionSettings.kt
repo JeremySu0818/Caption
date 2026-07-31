@@ -7,4 +7,5 @@ data class CaptionSettings(
     val sourceLanguageTag: String = "en",
     val targetLanguageTag: String = "zh",
     val uiLanguageTag: String = "system",
+    val themeMode: ThemeMode = ThemeMode.SYSTEM,
 )

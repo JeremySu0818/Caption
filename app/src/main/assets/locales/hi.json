@@ -81,5 +81,9 @@
   "error_translate_unsupported_lang": "एमएल किट अनुवाद भाषा का समर्थन नहीं करता: {टैग}",
   "error_whisper_unsupported_lang": "व्हिस्पर भाषा का समर्थन नहीं करता: {टैग}",
   "error_translate_source_unsupported": "एमएल किट स्रोत भाषा का समर्थन नहीं करता: {tag1} ({tag2})",
-  "error_translate_target_unsupported": "एमएल किट लक्ष्य भाषा का समर्थन नहीं करता: {tag1} ({tag2})"
+  "error_translate_target_unsupported": "एमएल किट लक्ष्य भाषा का समर्थन नहीं करता: {tag1} ({tag2})",
+  "color_theme": "रंग थीम",
+  "theme_system": "सिस्टम के अनुसार",
+  "theme_light": "हल्का",
+  "theme_dark": "गहरा"
 }

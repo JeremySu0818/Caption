@@ -81,5 +81,9 @@
   "error_translate_unsupported_lang": "ML Kit Translate មិនគាំទ្រភាសា៖ {tag}",
   "error_whisper_unsupported_lang": "ខ្សឹបមិនគាំទ្រភាសា៖ {tag}",
   "error_translate_source_unsupported": "កញ្ចប់ ML មិនគាំទ្រភាសាប្រភព៖ {tag1} ({tag2})",
-  "error_translate_target_unsupported": "កញ្ចប់ ML មិនគាំទ្រភាសាគោលដៅ៖ {tag1} ({tag2})"
+  "error_translate_target_unsupported": "កញ្ចប់ ML មិនគាំទ្រភាសាគោលដៅ៖ {tag1} ({tag2})",
+  "color_theme": "រចនាប័ទ្មពណ៌",
+  "theme_system": "ប្រើតាមប្រព័ន្ធ",
+  "theme_light": "ភ្លឺ",
+  "theme_dark": "ងងឹត"
 }

@@ -81,5 +81,9 @@
   "error_translate_unsupported_lang": "ML Kit Translate-ը չի աջակցում լեզուն՝ {tag}",
   "error_whisper_unsupported_lang": "Whisper-ը չի աջակցում լեզուն՝ {tag}",
   "error_translate_source_unsupported": "ML Kit-ը չի աջակցում աղբյուրի լեզուն՝ {tag1} ({tag2})",
-  "error_translate_target_unsupported": "ML Kit-ը չի աջակցում թիրախային լեզուն՝ {tag1} ({tag2})"
+  "error_translate_target_unsupported": "ML Kit-ը չի աջակցում թիրախային լեզուն՝ {tag1} ({tag2})",
+  "color_theme": "Գունային թեմա",
+  "theme_system": "Հետևել համակարգին",
+  "theme_light": "Բաց",
+  "theme_dark": "Մուգ"
 }

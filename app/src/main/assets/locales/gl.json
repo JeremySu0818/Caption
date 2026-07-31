@@ -81,5 +81,9 @@
   "error_translate_unsupported_lang": "ML Kit Translate non admite o idioma: {tag}",
   "error_whisper_unsupported_lang": "Whisper non admite o idioma: {tag}",
   "error_translate_source_unsupported": "ML Kit non admite o idioma de orixe: {tag1} ({tag2})",
-  "error_translate_target_unsupported": "ML Kit non admite o idioma de destino: {tag1} ({tag2})"
+  "error_translate_target_unsupported": "ML Kit non admite o idioma de destino: {tag1} ({tag2})",
+  "color_theme": "Tema de cor",
+  "theme_system": "Seguir o sistema",
+  "theme_light": "Claro",
+  "theme_dark": "Escuro"
 }

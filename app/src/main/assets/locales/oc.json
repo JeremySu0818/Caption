@@ -81,5 +81,9 @@
   "error_translate_unsupported_lang": "ML Kit Translate pren pas en carga la lenga : {tag}",
   "error_whisper_unsupported_lang": "Whisper pren pas en carga lo lengatge : {tag}",
   "error_translate_source_unsupported": "ML Kit pren pas en carga la lenga font : {tag1} ({tag2})",
-  "error_translate_target_unsupported": "ML Kit pren pas en carga la lenga cibla : {tag1} ({tag2})"
+  "error_translate_target_unsupported": "ML Kit pren pas en carga la lenga cibla : {tag1} ({tag2})",
+  "color_theme": "Tèma de color",
+  "theme_system": "Seguir lo sistèma",
+  "theme_light": "Clar",
+  "theme_dark": "Escur"
 }

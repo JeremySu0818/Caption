@@ -81,5 +81,9 @@
   "error_translate_unsupported_lang": "ML Kit Translate esimbaka monoko te: {tag}",
   "error_whisper_unsupported_lang": "Whisper esungaka monoko te: {tag}",
   "error_translate_source_unsupported": "ML Kit esimbaka monoko ya source te: {tag1} ({tag2})",
-  "error_translate_target_unsupported": "ML Kit esimbaka monoko ya cible te: {tag1} ({tag2})"
+  "error_translate_target_unsupported": "ML Kit esimbaka monoko ya cible te: {tag1} ({tag2})",
+  "color_theme": "Motó ya langi",
+  "theme_system": "Landa système",
+  "theme_light": "Polele",
+  "theme_dark": "Molili"
 }

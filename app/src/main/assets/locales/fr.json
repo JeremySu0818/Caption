@@ -81,5 +81,9 @@
   "error_translate_unsupported_lang": "ML Kit Translate ne prend pas en charge la langue : {tag}",
   "error_whisper_unsupported_lang": "Whisper ne prend pas en charge la langue : {tag}",
   "error_translate_source_unsupported": "ML Kit ne prend pas en charge la langue source : {tag1} ({tag2})",
-  "error_translate_target_unsupported": "ML Kit ne prend pas en charge la langue cible : {tag1} ({tag2})"
+  "error_translate_target_unsupported": "ML Kit ne prend pas en charge la langue cible : {tag1} ({tag2})",
+  "color_theme": "Thème de couleur",
+  "theme_system": "Suivre le système",
+  "theme_light": "Clair",
+  "theme_dark": "Sombre"
 }

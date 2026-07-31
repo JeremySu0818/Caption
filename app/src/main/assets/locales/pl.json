@@ -81,5 +81,9 @@
   "error_translate_unsupported_lang": "Tłumacz ML Kit nie obsługuje języka: {tag}",
   "error_whisper_unsupported_lang": "Szept nie obsługuje języka: {tag}",
   "error_translate_source_unsupported": "ML Kit nie obsługuje języka źródłowego: {tag1} ({tag2})",
-  "error_translate_target_unsupported": "ML Kit nie obsługuje języka docelowego: {tag1} ({tag2})"
+  "error_translate_target_unsupported": "ML Kit nie obsługuje języka docelowego: {tag1} ({tag2})",
+  "color_theme": "Motyw kolorystyczny",
+  "theme_system": "Ustawienie systemowe",
+  "theme_light": "Jasny",
+  "theme_dark": "Ciemny"
 }

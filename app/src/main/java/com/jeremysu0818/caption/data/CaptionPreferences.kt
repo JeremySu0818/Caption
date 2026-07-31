@@ -37,6 +37,10 @@ class CaptionPreferences(context: Context) {
         update { it.copy(uiLanguageTag = tag) }
     }
 
+    fun updateThemeMode(themeMode: ThemeMode) {
+        update { it.copy(themeMode = themeMode) }
+    }
+
     private fun update(transform: (CaptionSettings) -> CaptionSettings) {
         val next = normalize(transform(_settings.value))
         prefs.edit {
@@ -46,6 +50,7 @@ class CaptionPreferences(context: Context) {
             putString(KEY_SOURCE_LANGUAGE, next.sourceLanguageTag)
             putString(KEY_TARGET_LANGUAGE, next.targetLanguageTag)
             putString(KEY_UI_LANGUAGE, next.uiLanguageTag)
+            putString(KEY_THEME_MODE, next.themeMode.id)
         }
         _settings.update { next }
         I18n.setLocale(next.uiLanguageTag)
@@ -60,6 +65,7 @@ class CaptionPreferences(context: Context) {
                 sourceLanguageTag = prefs.getString(KEY_SOURCE_LANGUAGE, "en") ?: "en",
                 targetLanguageTag = prefs.getString(KEY_TARGET_LANGUAGE, "zh") ?: "zh",
                 uiLanguageTag = prefs.getString(KEY_UI_LANGUAGE, "system") ?: "system",
+                themeMode = ThemeMode.fromId(prefs.getString(KEY_THEME_MODE, null)),
             )
         )
 
@@ -80,5 +86,6 @@ class CaptionPreferences(context: Context) {
         private const val KEY_SOURCE_LANGUAGE = "source_language"
         private const val KEY_TARGET_LANGUAGE = "target_language"
         private const val KEY_UI_LANGUAGE = "ui_language"
+        private const val KEY_THEME_MODE = "theme_mode"
     }
 }

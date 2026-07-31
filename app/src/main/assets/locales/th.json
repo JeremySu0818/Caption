@@ -81,5 +81,9 @@
   "error_translate_unsupported_lang": "ML Kit Translate ไม่รองรับภาษา: {tag}",
   "error_whisper_unsupported_lang": "Whisper ไม่รองรับภาษา: {tag}",
   "error_translate_source_unsupported": "ML Kit ไม่รองรับภาษาต้นฉบับ: {tag1} ({tag2})",
-  "error_translate_target_unsupported": "ML Kit ไม่รองรับภาษาเป้าหมาย: {tag1} ({tag2})"
+  "error_translate_target_unsupported": "ML Kit ไม่รองรับภาษาเป้าหมาย: {tag1} ({tag2})",
+  "color_theme": "ธีมสี",
+  "theme_system": "ตามระบบ",
+  "theme_light": "สว่าง",
+  "theme_dark": "มืด"
 }

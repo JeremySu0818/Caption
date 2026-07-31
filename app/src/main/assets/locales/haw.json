@@ -81,5 +81,9 @@
   "error_translate_unsupported_lang": "ʻAʻole kākoʻo ʻo ML Kit Unuhi i ka ʻōlelo: {tag}",
   "error_whisper_unsupported_lang": "ʻAʻole kākoʻo ʻo Whisper i ka ʻōlelo: {tag}",
   "error_translate_source_unsupported": "ʻAʻole kākoʻo ʻo ML Kit i ka ʻōlelo kumu: {tag1} ({tag2})",
-  "error_translate_target_unsupported": "ʻAʻole kākoʻo ʻo ML Kit i ka ʻōlelo kuhi: {tag1} ({tag2})"
+  "error_translate_target_unsupported": "ʻAʻole kākoʻo ʻo ML Kit i ka ʻōlelo kuhi: {tag1} ({tag2})",
+  "color_theme": "Kumuhana waihoʻoluʻu",
+  "theme_system": "Hahai i ka ʻōnaehana",
+  "theme_light": "Mālamalama",
+  "theme_dark": "Pōʻeleʻele"
 }

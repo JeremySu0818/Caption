@@ -81,5 +81,9 @@
   "error_translate_unsupported_lang": "ML Kit Translate 唔支援語言： {tag}",
   "error_whisper_unsupported_lang": "Whisper 唔支援語言： {tag}",
   "error_translate_source_unsupported": "ML Kit 唔支援來源語言： {tag1} （ {tag2} ）",
-  "error_translate_target_unsupported": "ML Kit 唔支援目標語言： {tag1} （ {tag2} ）"
+  "error_translate_target_unsupported": "ML Kit 唔支援目標語言： {tag1} （ {tag2} ）",
+  "color_theme": "色彩主題",
+  "theme_system": "跟隨系統",
+  "theme_light": "淺色",
+  "theme_dark": "深色"
 }

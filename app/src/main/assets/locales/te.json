@@ -81,5 +81,9 @@
   "error_translate_unsupported_lang": "ML Kit Translate భాషకు మద్దతు ఇవ్వదు: {tag}",
   "error_whisper_unsupported_lang": "విష్పర్ భాషకు మద్దతు ఇవ్వదు: {tag}",
   "error_translate_source_unsupported": "ML కిట్ మూల భాషకు మద్దతు ఇవ్వదు: {tag1} ({tag2})",
-  "error_translate_target_unsupported": "ML కిట్ లక్ష్య భాషకు మద్దతు ఇవ్వదు: {tag1} ({tag2})"
+  "error_translate_target_unsupported": "ML కిట్ లక్ష్య భాషకు మద్దతు ఇవ్వదు: {tag1} ({tag2})",
+  "color_theme": "రంగు థీమ్",
+  "theme_system": "సిస్టమ్‌ను అనుసరించు",
+  "theme_light": "లైట్",
+  "theme_dark": "డార్క్"
 }

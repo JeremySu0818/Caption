@@ -81,5 +81,9 @@
   "error_translate_unsupported_lang": "Az ML Kit Fordító nem támogatja a következő nyelvet: {tag}",
   "error_whisper_unsupported_lang": "A suttogás nem támogatja a következő nyelvet: {tag}",
   "error_translate_source_unsupported": "Az ML Kit nem támogatja a forrásnyelvet: {tag1} ({tag2})",
-  "error_translate_target_unsupported": "Az ML Kit nem támogatja a célnyelvet: {tag1} ({tag2})"
+  "error_translate_target_unsupported": "Az ML Kit nem támogatja a célnyelvet: {tag1} ({tag2})",
+  "color_theme": "Színtéma",
+  "theme_system": "Rendszerbeállítás",
+  "theme_light": "Világos",
+  "theme_dark": "Sötét"
 }

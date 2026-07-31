@@ -81,5 +81,9 @@
   "error_translate_unsupported_lang": "ML Kit Translate ཡིས་སྐད་ཡིག་ལ་རྒྱབ་སྐྱོར་བྱེད་ཀྱི་མེད།: {tag}",
   "error_whisper_unsupported_lang": "ཤུབ་སྐད་ཀྱིས་སྐད་ཡིག་ལ་རྒྱབ་སྐྱོར་བྱེད་ཀྱི་མེད།: {tag}",
   "error_translate_source_unsupported": "ML Kit ཡིས་ཐོན་ཁུངས་སྐད་ཡིག་ལ་རྒྱབ་སྐྱོར་བྱེད་ཀྱི་མེད། {tag1} ({tag2})",
-  "error_translate_target_unsupported": "ML Kit ཡིས་དམིགས་འབེན་སྐད་ཡིག་ལ་རྒྱབ་སྐྱོར་བྱེད་ཀྱི་མེད། {tag1} ({tag2})"
+  "error_translate_target_unsupported": "ML Kit ཡིས་དམིགས་འབེན་སྐད་ཡིག་ལ་རྒྱབ་སྐྱོར་བྱེད་ཀྱི་མེད། {tag1} ({tag2})",
+  "color_theme": "ཚོས་གཞིའི་བརྗོད་གཞི།",
+  "theme_system": "མ་ལག་ལ་རྗེས་འབྲང་།",
+  "theme_light": "གསལ་པོ།",
+  "theme_dark": "མུན་ནག"
 }

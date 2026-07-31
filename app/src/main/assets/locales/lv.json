@@ -81,5 +81,9 @@
   "error_translate_unsupported_lang": "ML komplekta tulkotājs neatbalsta valodu: {tag}",
   "error_whisper_unsupported_lang": "Whisper neatbalsta valodu: {tag}",
   "error_translate_source_unsupported": "ML komplekts neatbalsta avota valodu: {tag1} ({tag2})",
-  "error_translate_target_unsupported": "ML komplekts neatbalsta mērķa valodu: {tag1} ({tag2})"
+  "error_translate_target_unsupported": "ML komplekts neatbalsta mērķa valodu: {tag1} ({tag2})",
+  "color_theme": "Krāsu motīvs",
+  "theme_system": "Sekot sistēmai",
+  "theme_light": "Gaišs",
+  "theme_dark": "Tumšs"
 }

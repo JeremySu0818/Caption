@@ -81,5 +81,9 @@
   "error_translate_unsupported_lang": "Tumọ ML Kit ko ṣe atilẹyin ede: {tag}",
   "error_whisper_unsupported_lang": "Whisper ko ṣe atilẹyin ede: {tag}",
   "error_translate_source_unsupported": "ML Kit ko ṣe atilẹyin ede orisun: {tag1} ({tag2})",
-  "error_translate_target_unsupported": "ML Kit ko ṣe atilẹyin ede ibi-afẹde: {tag1} ({tag2})"
+  "error_translate_target_unsupported": "ML Kit ko ṣe atilẹyin ede ibi-afẹde: {tag1} ({tag2})",
+  "color_theme": "Àkòrí àwọ̀",
+  "theme_system": "Tẹ̀lé ètò",
+  "theme_light": "Imọlẹ",
+  "theme_dark": "Òkùnkùn"
 }

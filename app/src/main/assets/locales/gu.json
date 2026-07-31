@@ -81,5 +81,9 @@
   "error_translate_unsupported_lang": "ML કિટ અનુવાદ ભાષાને સમર્થન આપતું નથી: {tag}",
   "error_whisper_unsupported_lang": "વ્હીસ્પર ભાષાને સમર્થન આપતું નથી: {tag}",
   "error_translate_source_unsupported": "ML કિટ સ્રોત ભાષાને સમર્થન આપતી નથી: {tag1} ({tag2})",
-  "error_translate_target_unsupported": "ML કિટ લક્ષ્ય ભાષાને સમર્થન આપતી નથી: {tag1} ({tag2})"
+  "error_translate_target_unsupported": "ML કિટ લક્ષ્ય ભાષાને સમર્થન આપતી નથી: {tag1} ({tag2})",
+  "color_theme": "રંગ થીમ",
+  "theme_system": "સિસ્ટમને અનુસરો",
+  "theme_light": "લાઇટ",
+  "theme_dark": "ડાર્ક"
 }

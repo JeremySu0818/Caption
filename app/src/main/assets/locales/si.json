@@ -81,5 +81,9 @@
   "error_translate_unsupported_lang": "ML Kit Translate භාෂාවට සහය නොදක්වයි: {tag}",
   "error_whisper_unsupported_lang": "විස්පර් භාෂාවට සහය නොදක්වයි: {tag}",
   "error_translate_source_unsupported": "ML Kit මූලාශ්‍ර භාෂාවට සහය නොදක්වයි: {tag1} ({tag2})",
-  "error_translate_target_unsupported": "ML Kit ඉලක්ක භාෂාවට සහය නොදක්වයි: {tag1} ({tag2})"
+  "error_translate_target_unsupported": "ML Kit ඉලක්ක භාෂාවට සහය නොදක්වයි: {tag1} ({tag2})",
+  "color_theme": "වර්ණ තේමාව",
+  "theme_system": "පද්ධතිය අනුගමනය කරන්න",
+  "theme_light": "ආලෝක",
+  "theme_dark": "අඳුරු"
 }

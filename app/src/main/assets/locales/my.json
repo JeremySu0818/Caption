@@ -81,5 +81,9 @@
   "error_translate_unsupported_lang": "ML Kit Translate သည် ဘာသာစကားကို မပံ့ပိုးပါ- {tag}",
   "error_whisper_unsupported_lang": "Whisper သည် ဘာသာစကားကို မပံ့ပိုးပါ- {tag}",
   "error_translate_source_unsupported": "ML Kit သည် အရင်းအမြစ်ဘာသာစကားကို မပံ့ပိုးပါ- {tag1} ({tag2})",
-  "error_translate_target_unsupported": "ML Kit သည် ပစ်မှတ်ဘာသာစကားကို မပံ့ပိုးပါ- {tag1} ({tag2})"
+  "error_translate_target_unsupported": "ML Kit သည် ပစ်မှတ်ဘာသာစကားကို မပံ့ပိုးပါ- {tag1} ({tag2})",
+  "color_theme": "အရောင်အပြင်အဆင်",
+  "theme_system": "စနစ်အတိုင်း",
+  "theme_light": "အလင်း",
+  "theme_dark": "အမှောင်"
 }
