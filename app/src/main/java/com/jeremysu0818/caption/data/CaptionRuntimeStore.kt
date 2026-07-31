@@ -94,6 +94,32 @@ object CaptionRuntimeStore {
         }
     }
 
+    fun cancelPendingTranslations() {
+        _state.update { state ->
+            state.copy(
+                lines = state.lines.map { line ->
+                    if (line.isTranslating) line.copy(isTranslating = false) else line
+                },
+            )
+        }
+    }
+
+    fun cancelTranslation(id: String) {
+        _state.update { state ->
+            state.copy(
+                lines = state.lines.map { line ->
+                    if (line.id == id) line.copy(isTranslating = false) else line
+                },
+            )
+        }
+    }
+
+    fun discardPartialLines() {
+        _state.update { state ->
+            state.copy(lines = state.lines.filter(CaptionLine::isFinal))
+        }
+    }
+
     fun setError(message: String) {
         _state.update { it.copy(status = "status_error", errorMessage = message) }
     }

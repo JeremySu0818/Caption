@@ -28,15 +28,18 @@ import com.jeremysu0818.caption.audio.InMemoryWavWriter
 import com.jeremysu0818.caption.audio.SystemAudioCapture
 import com.jeremysu0818.caption.audio.VoiceActivityDetector
 import com.jeremysu0818.caption.accessibility.CaptionAccessibilityService
+import com.jeremysu0818.caption.data.CaptionSettings
 import com.jeremysu0818.caption.data.CaptionRuntimeStore
 import com.jeremysu0818.caption.data.SpeechEngineOption
 import com.jeremysu0818.caption.data.I18n
+import com.jeremysu0818.caption.data.WhisperModelOption
 import com.jeremysu0818.caption.overlay.FloatingCaptionWindow
 import com.jeremysu0818.caption.tile.CaptionTileService
 import java.io.File
 import java.util.UUID
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
@@ -45,15 +48,29 @@ import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class CaptionCaptureService : Service() {
+    private data class RecognitionConfig(
+        val speechEngine: SpeechEngineOption,
+        val model: WhisperModelOption?,
+        val languageTag: String,
+    )
+
+    private data class TranslationConfig(
+        val enabled: Boolean,
+        val sourceLanguageTag: String,
+        val targetLanguageTag: String,
+    )
+
     private data class TranslationRequest(
         val id: String,
         val sourceText: String,
-        val sourceLanguageTag: String,
-        val targetLanguageTag: String,
+        val config: TranslationConfig,
     )
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -122,78 +139,66 @@ class CaptionCaptureService : Service() {
             try {
                 verifyRuntimeRequirements()
                 val projection = createMediaProjection(resultCode, resultData)
-                val settingsAtStart = CaptionGraph.preferences.settings.value
-                val modelOption = settingsAtStart.model
-                if (
-                    settingsAtStart.speechEngine != SpeechEngineOption.WHISPER &&
-                    !hasInternetConnection() &&
-                    !CaptionGraph.mlKitSpeechTranscriber.isModelReady(
-                        settingsAtStart.sourceLanguageTag,
-                        settingsAtStart.speechEngine,
-                    )
-                ) {
-                    throw IllegalStateException(I18n.getString("error_model_download_requires_network"))
-                }
-                val modelFile = if (settingsAtStart.speechEngine == SpeechEngineOption.WHISPER) {
-                    if (!CaptionGraph.modelRepository.modelFile(modelOption).exists() && !hasInternetConnection()) {
-                        throw IllegalStateException(I18n.getString("error_model_download_requires_network"))
-                    }
-                    val downloadStatusJob = launch {
-                        CaptionGraph.modelRepository.downloadState.collectLatest { state ->
-                            if (state.model == modelOption && state.isDownloading) {
-                                val status = state.buildStatusText()
-                                CaptionRuntimeStore.updateStatus(status)
-                                updateNotification(status)
-                            }
-                        }
-                    }
-
-                    CaptionRuntimeStore.updateStatus(I18n.getString("status_checking_whisper"))
-                    CaptionGraph.modelRepository.ensureModel(modelOption).also {
-                        downloadStatusJob.cancel()
-                    }
-                } else {
-                    null
-                }
-
-                CaptionRuntimeStore.updateStatus(I18n.getString("status_capturing_audio"))
-                updateNotification(I18n.getString("status_capturing_audio"))
                 val translationChannel = Channel<TranslationRequest>(Channel.UNLIMITED)
                 val translationJob = launch(Dispatchers.Default) {
                     for (line in translationChannel) {
+                        if (!line.config.isCurrentTranslationConfig()) {
+                            withContext(Dispatchers.Main.immediate) {
+                                CaptionRuntimeStore.cancelTranslation(line.id)
+                            }
+                            continue
+                        }
                         try {
                             val translated = CaptionGraph.translator.translate(
                                 text = line.sourceText,
-                                sourceLanguageTag = line.sourceLanguageTag,
-                                targetLanguageTag = line.targetLanguageTag,
+                                sourceLanguageTag = line.config.sourceLanguageTag,
+                                targetLanguageTag = line.config.targetLanguageTag,
                             )
                             withContext(Dispatchers.Main.immediate) {
-                                CaptionRuntimeStore.updateTranslation(line.id, translated)
+                                if (line.config.isCurrentTranslationConfig()) {
+                                    CaptionRuntimeStore.updateTranslation(line.id, translated)
+                                } else {
+                                    CaptionRuntimeStore.cancelTranslation(line.id)
+                                }
                             }
                         } catch (e: Exception) {
                             if (e is CancellationException) throw e
                             Log.e(TAG, "Translation failed", e)
                             withContext(Dispatchers.Main.immediate) {
-                                CaptionRuntimeStore.updateTranslation(line.id, I18n.getString("translation_failed"))
+                                if (line.config.isCurrentTranslationConfig()) {
+                                    CaptionRuntimeStore.updateTranslation(
+                                        line.id,
+                                        I18n.getString("translation_failed"),
+                                    )
+                                } else {
+                                    CaptionRuntimeStore.cancelTranslation(line.id)
+                                }
                             }
                         }
                     }
                 }
+                val translationSettingsJob = launch(start = CoroutineStart.UNDISPATCHED) {
+                    CaptionGraph.preferences.settings
+                        .map { it.translationConfig() }
+                        .distinctUntilChanged()
+                        .drop(1)
+                        .collect {
+                            CaptionRuntimeStore.cancelPendingTranslations()
+                        }
+                }
                 try {
-                    if (settingsAtStart.speechEngine == SpeechEngineOption.WHISPER) {
-                        runWhisperBatchCaptureLoop(
-                            projection = projection,
-                            modelFile = requireNotNull(modelFile),
-                            modelOption = modelOption,
-                            translationChannel = translationChannel,
-                        )
-                    } else {
-                        runMlKitStreamingCaptureLoop(
-                            projection = projection,
-                            translationChannel = translationChannel,
-                        )
-                    }
+                    CaptionGraph.preferences.settings
+                        .map { it.recognitionConfig() }
+                        .distinctUntilChanged()
+                        .collectLatest { config ->
+                            runRecognitionPipeline(
+                                projection = projection,
+                                config = config,
+                                translationChannel = translationChannel,
+                            )
+                        }
                 } finally {
+                    translationSettingsJob.cancel()
                     translationChannel.close()
                     translationJob.join()
                 }
@@ -208,6 +213,85 @@ class CaptionCaptureService : Service() {
         }
     }
 
+    private suspend fun runRecognitionPipeline(
+        projection: MediaProjection,
+        config: RecognitionConfig,
+        translationChannel: Channel<TranslationRequest>,
+    ) {
+        try {
+            if (config.speechEngine == SpeechEngineOption.WHISPER) {
+                val model = requireNotNull(config.model)
+                val modelFile = CaptionGraph.modelRepository.modelFile(model)
+                if (!modelFile.exists() && !hasInternetConnection()) {
+                    throw IllegalStateException(I18n.getString("error_model_download_requires_network"))
+                }
+                val downloadStatusJob = serviceScope.launch {
+                    CaptionGraph.modelRepository.downloadState.collectLatest { state ->
+                        if (state.model == model && state.isDownloading) {
+                            val status = state.buildStatusText()
+                            CaptionRuntimeStore.updateStatus(status)
+                            updateNotification(status)
+                        }
+                    }
+                }
+                try {
+                    CaptionRuntimeStore.updateStatus(I18n.getString("status_checking_whisper"))
+                    CaptionGraph.modelRepository.ensureModel(model)
+                } finally {
+                    downloadStatusJob.cancel()
+                }
+
+                showCapturingStatus()
+                runWhisperBatchCaptureLoop(
+                    projection = projection,
+                    modelFile = modelFile,
+                    modelOption = model,
+                    recognitionLanguageTag = config.languageTag,
+                    translationChannel = translationChannel,
+                )
+            } else {
+                if (
+                    !hasInternetConnection() &&
+                    !CaptionGraph.mlKitSpeechTranscriber.isModelReady(
+                        config.languageTag,
+                        config.speechEngine,
+                    )
+                ) {
+                    throw IllegalStateException(I18n.getString("error_model_download_requires_network"))
+                }
+
+                showCapturingStatus()
+                runMlKitStreamingCaptureLoop(
+                    projection = projection,
+                    speechEngine = config.speechEngine,
+                    sourceLanguageTag = config.languageTag,
+                    translationChannel = translationChannel,
+                )
+            }
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (error: Throwable) {
+            val message = error.message ?: I18n.getString("status_service_failed")
+            Log.e(TAG, "Recognition pipeline failed", error)
+            CaptionRuntimeStore.setError(message)
+            updateNotification(message)
+        } finally {
+            CaptionRuntimeStore.discardPartialLines()
+            when (config.speechEngine) {
+                SpeechEngineOption.WHISPER -> CaptionGraph.transcriber.release()
+                SpeechEngineOption.MLKIT_BASIC,
+                SpeechEngineOption.MLKIT_ADVANCED,
+                -> CaptionGraph.mlKitSpeechTranscriber.close()
+            }
+        }
+    }
+
+    private fun showCapturingStatus() {
+        val status = I18n.getString("status_capturing_audio")
+        CaptionRuntimeStore.updateStatus(status)
+        updateNotification(status)
+    }
+
 
 
 
@@ -215,7 +299,8 @@ class CaptionCaptureService : Service() {
     private suspend fun runWhisperBatchCaptureLoop(
         projection: MediaProjection,
         modelFile: File,
-        modelOption: com.jeremysu0818.caption.data.WhisperModelOption,
+        modelOption: WhisperModelOption,
+        recognitionLanguageTag: String,
         translationChannel: Channel<TranslationRequest>,
     ) = coroutineScope {
         withContext(Dispatchers.Default) {
@@ -311,34 +396,28 @@ class CaptionCaptureService : Service() {
                     }
 
                     InMemoryWavWriter.write(wavFile, samples)
-                    val settings = CaptionGraph.preferences.settings.value
-                    val whisperLanguage = if (settings.translationEnabled) {
-                        settings.sourceLanguageTag
-                    } else {
-                        "auto"
-                    }
-
                     val sourceText = CaptionGraph.transcriber.transcribe(
                         wavFile = wavFile,
                         modelFile = modelFile,
-                        languageTag = whisperLanguage,
+                        languageTag = recognitionLanguageTag,
                     ).cleanWhisperText()
 
                     if (sourceText.isBlank()) continue
 
+                    val settings = CaptionGraph.preferences.settings.value
                     val lineId = UUID.randomUUID().toString()
                     val doTranslate = settings.translationEnabled
                     withContext(Dispatchers.Main.immediate) {
                         CaptionRuntimeStore.commitSourceText(lineId, sourceText, isTranslating = doTranslate)
                     }
                     if (doTranslate) {
+                        val translationConfig = settings.translationConfig()
                         enqueueTranslation(
                             translationChannel = translationChannel,
                             request = TranslationRequest(
                                 id = lineId,
                                 sourceText = sourceText,
-                                sourceLanguageTag = settings.sourceLanguageTag,
-                                targetLanguageTag = settings.targetLanguageTag,
+                                config = translationConfig,
                             ),
                         )
                     }
@@ -369,6 +448,8 @@ class CaptionCaptureService : Service() {
 
     private suspend fun runMlKitStreamingCaptureLoop(
         projection: MediaProjection,
+        speechEngine: SpeechEngineOption,
+        sourceLanguageTag: String,
         translationChannel: Channel<TranslationRequest>,
     ) = coroutineScope {
         val audioChunks = Channel<ShortArray>(
@@ -383,13 +464,12 @@ class CaptionCaptureService : Service() {
             )
         }
         val recognitionJob = launch(Dispatchers.Default) {
-            val initialSettings = CaptionGraph.preferences.settings.value
             var currentLineId = UUID.randomUUID().toString()
 
             CaptionGraph.mlKitSpeechTranscriber.stream(
                 audioChunks = audioChunks,
-                languageTag = initialSettings.sourceLanguageTag,
-                engine = initialSettings.speechEngine,
+                languageTag = sourceLanguageTag,
+                engine = speechEngine,
                 onStatus = { status ->
                     withContext(Dispatchers.Main.immediate) {
                         CaptionRuntimeStore.updateStatus(status)
@@ -410,13 +490,13 @@ class CaptionCaptureService : Service() {
                         CaptionRuntimeStore.commitSourceText(lineIdToCommit, sourceText, isTranslating = doTranslate)
                     }
                     if (doTranslate) {
+                        val translationConfig = settings.translationConfig()
                         enqueueTranslation(
                             translationChannel = translationChannel,
                             request = TranslationRequest(
                                 id = lineIdToCommit,
                                 sourceText = sourceText,
-                                sourceLanguageTag = settings.sourceLanguageTag,
-                                targetLanguageTag = settings.targetLanguageTag,
+                                config = translationConfig,
                             ),
                         )
                     }
@@ -576,6 +656,24 @@ class CaptionCaptureService : Service() {
         }
     }
 
+    private fun CaptionSettings.recognitionConfig(): RecognitionConfig = RecognitionConfig(
+        speechEngine = speechEngine,
+        model = model.takeIf { speechEngine == SpeechEngineOption.WHISPER },
+        languageTag = when {
+            speechEngine == SpeechEngineOption.WHISPER && !translationEnabled -> "auto"
+            else -> sourceLanguageTag
+        },
+    )
+
+    private fun CaptionSettings.translationConfig(): TranslationConfig = TranslationConfig(
+        enabled = translationEnabled,
+        sourceLanguageTag = sourceLanguageTag,
+        targetLanguageTag = targetLanguageTag,
+    )
+
+    private fun TranslationConfig.isCurrentTranslationConfig(): Boolean =
+        this == CaptionGraph.preferences.settings.value.translationConfig() && enabled
+
     private fun Iterable<ShortArray>.flattenShorts(sampleCount: Int): ShortArray {
         val output = ShortArray(sampleCount)
         var offset = 0
@@ -623,21 +721,21 @@ class CaptionCaptureService : Service() {
         val maxUtteranceSamples: Int = SystemAudioCapture.SAMPLE_RATE * maxUtteranceMs / 1_000
     }
 
-    private fun com.jeremysu0818.caption.data.WhisperModelOption.batchTiming(): WhisperBatchTiming =
+    private fun WhisperModelOption.batchTiming(): WhisperBatchTiming =
         when (this) {
-            com.jeremysu0818.caption.data.WhisperModelOption.TINY -> WhisperBatchTiming(
+            WhisperModelOption.TINY -> WhisperBatchTiming(
                 silenceCommitMs = 800,
                 vadHangoverChunks = 4,
             )
-            com.jeremysu0818.caption.data.WhisperModelOption.BASE -> WhisperBatchTiming(
+            WhisperModelOption.BASE -> WhisperBatchTiming(
                 silenceCommitMs = 900,
                 vadHangoverChunks = 5,
             )
-            com.jeremysu0818.caption.data.WhisperModelOption.SMALL -> WhisperBatchTiming(
+            WhisperModelOption.SMALL -> WhisperBatchTiming(
                 silenceCommitMs = 1_000,
                 vadHangoverChunks = 5,
             )
-            com.jeremysu0818.caption.data.WhisperModelOption.MEDIUM -> WhisperBatchTiming(
+            WhisperModelOption.MEDIUM -> WhisperBatchTiming(
                 silenceCommitMs = 1_200,
                 vadHangoverChunks = 6,
             )
