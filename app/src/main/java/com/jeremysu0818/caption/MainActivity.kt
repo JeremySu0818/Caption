@@ -249,9 +249,14 @@ private fun CaptionApp(
         CaptionGraph.modelRepository.refresh(settings.model)
     }
 
-    LaunchedEffect(settings.sourceLanguageTag) {
-        isMlKitAdvancedAvailable = runCatching {
-            CaptionGraph.mlKitSpeechTranscriber.isAdvancedAvailable(settings.sourceLanguageTag)
+    LaunchedEffect(settings.sourceLanguageTag, settings.translationEnabled) {
+        val advancedSourceTag = CaptionLanguages.compatibleSourceTag(
+            tag = settings.sourceLanguageTag,
+            engine = SpeechEngineOption.MLKIT_ADVANCED,
+            translationEnabled = settings.translationEnabled,
+        )
+        isMlKitAdvancedAvailable = advancedSourceTag != null && runCatching {
+            CaptionGraph.mlKitSpeechTranscriber.isAdvancedAvailable(advancedSourceTag)
         }.getOrDefault(false)
     }
 
@@ -1572,7 +1577,7 @@ private fun UiLanguageSection(
 ) {
     val systemDefault = t("system_default")
     val languages = remember(systemDefault) {
-        listOf(CaptionLanguage(tag = "system", label = systemDefault)) + CaptionLanguages.supported
+        listOf(CaptionLanguage(tag = "system", label = systemDefault)) + CaptionLanguages.uiLanguages()
     }
     LanguageDropdown(
         selectedTag = settings.uiLanguageTag,

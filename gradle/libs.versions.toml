@@ -12,6 +12,7 @@ coroutines = "1.9.0"
 mlkitTranslate = "17.0.3"
 mlkitGenaiSpeech = "1.0.0-alpha1"
 whisperAndroid = "1.0.0"
+openccJava = "1.4.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -32,6 +33,7 @@ kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-
 mlkit-translate = { group = "com.google.mlkit", name = "translate", version.ref = "mlkitTranslate" }
 mlkit-genai-speech = { group = "com.google.mlkit", name = "genai-speech-recognition", version.ref = "mlkitGenaiSpeech" }
 whisper-android = { group = "dev.ffmpegkit-maintained", name = "whisper-android", version.ref = "whisperAndroid" }
+opencc-java = { group = "io.github.laisuk", name = "openccjava", version.ref = "openccJava" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

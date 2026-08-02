@@ -63,7 +63,7 @@ class CaptionPreferences(context: Context) {
                 model = WhisperModelOption.fromId(prefs.getString(KEY_MODEL, null)),
                 translationEnabled = prefs.getBoolean(KEY_TRANSLATION_ENABLED, false),
                 sourceLanguageTag = prefs.getString(KEY_SOURCE_LANGUAGE, "en") ?: "en",
-                targetLanguageTag = prefs.getString(KEY_TARGET_LANGUAGE, "zh") ?: "zh",
+                targetLanguageTag = prefs.getString(KEY_TARGET_LANGUAGE, "zh-TW") ?: "zh-TW",
                 uiLanguageTag = prefs.getString(KEY_UI_LANGUAGE, "system") ?: "system",
                 themeMode = ThemeMode.fromId(prefs.getString(KEY_THEME_MODE, null)),
             )

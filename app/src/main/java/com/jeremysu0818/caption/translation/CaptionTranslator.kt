@@ -17,24 +17,28 @@ class CaptionTranslator {
     private val mutex = Mutex()
     private var translator: Translator? = null
     private var languagePair: Pair<String, String>? = null
+    private val outputConverter = TranslationOutputConverter()
 
     suspend fun translate(text: String, sourceLanguageTag: String, targetLanguageTag: String): String =
         mutex.withLock {
             val safeSource = CaptionLanguages.requireMlKitTranslateTag(sourceLanguageTag)
             val safeTarget = CaptionLanguages.requireMlKitTranslateTag(targetLanguageTag)
-            if (safeSource == safeTarget) return@withLock text
-
-            val sourceLanguage = TranslateLanguage.fromLanguageTag(safeSource)
-                ?: throw IllegalArgumentException(
-                    com.jeremysu0818.caption.data.I18n.getString("error_translate_source_unsupported", sourceLanguageTag, safeSource)
-                )
-            val targetLanguage = TranslateLanguage.fromLanguageTag(safeTarget)
-                ?: throw IllegalArgumentException(
-                    com.jeremysu0818.caption.data.I18n.getString("error_translate_target_unsupported", targetLanguageTag, safeTarget)
-                )
-            val client = translatorFor(sourceLanguage, targetLanguage)
-            client.downloadModelIfNeeded(DownloadConditions.Builder().build()).awaitTask()
-            client.translate(text).awaitTask().trim()
+            val translated = if (safeSource == safeTarget) {
+                text
+            } else {
+                val sourceLanguage = TranslateLanguage.fromLanguageTag(safeSource)
+                    ?: throw IllegalArgumentException(
+                        com.jeremysu0818.caption.data.I18n.getString("error_translate_source_unsupported", sourceLanguageTag, safeSource)
+                    )
+                val targetLanguage = TranslateLanguage.fromLanguageTag(safeTarget)
+                    ?: throw IllegalArgumentException(
+                        com.jeremysu0818.caption.data.I18n.getString("error_translate_target_unsupported", targetLanguageTag, safeTarget)
+                    )
+                val client = translatorFor(sourceLanguage, targetLanguage)
+                client.downloadModelIfNeeded(DownloadConditions.Builder().build()).awaitTask()
+                client.translate(text).awaitTask().trim()
+            }
+            outputConverter.convert(translated, targetLanguageTag)
         }
 
     suspend fun close() = mutex.withLock {

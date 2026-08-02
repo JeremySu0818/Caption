@@ -5,7 +5,7 @@ data class CaptionSettings(
     val model: WhisperModelOption = WhisperModelOption.default,
     val translationEnabled: Boolean = false,
     val sourceLanguageTag: String = "en",
-    val targetLanguageTag: String = "zh",
+    val targetLanguageTag: String = "zh-TW",
     val uiLanguageTag: String = "system",
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
 )

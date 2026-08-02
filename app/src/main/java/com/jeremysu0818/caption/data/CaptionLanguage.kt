@@ -7,6 +7,8 @@ data class CaptionLanguage(
     val whisperTag: String? = null,
     val mlKitBasicLocale: String? = null,
     val mlKitAdvancedLocale: String? = null,
+    val isTranslationTarget: Boolean = tag == mlKitTranslateTag,
+    val isUiLanguage: Boolean = true,
 ) {
     val supportsMlKitTranslate: Boolean
         get() = mlKitTranslateTag != null
@@ -44,22 +46,22 @@ object CaptionLanguages {
         CaptionLanguage(tag = "bg", label = "Bulgarian", mlKitTranslateTag = "bg", whisperTag = "bg"),
         CaptionLanguage(tag = "my", label = "Burmese", whisperTag = "my"),
         CaptionLanguage(tag = "ca", label = "Catalan", mlKitTranslateTag = "ca", whisperTag = "ca"),
-        CaptionLanguage(tag = "zh", label = "中文", mlKitTranslateTag = "zh"),
+        CaptionLanguage(tag = "zh", label = "中文", mlKitTranslateTag = "zh", whisperTag = "zh", isTranslationTarget = false),
         CaptionLanguage(
             tag = "zh-TW",
             label = "繁體中文",
             mlKitTranslateTag = "zh",
-            whisperTag = "zh",
             mlKitBasicLocale = "cmn-Hant-TW",
             mlKitAdvancedLocale = "cmn-Hant-TW",
+            isTranslationTarget = true,
         ),
         CaptionLanguage(
             tag = "zh-CN",
             label = "简体中文",
             mlKitTranslateTag = "zh",
-            whisperTag = "zh",
             mlKitBasicLocale = "cmn-Hans-CN",
             mlKitAdvancedLocale = "cmn-Hans-CN",
+            isTranslationTarget = true,
         ),
         CaptionLanguage(tag = "hr", label = "Croatian", mlKitTranslateTag = "hr", whisperTag = "hr"),
         CaptionLanguage(tag = "cs", label = "Czech", mlKitTranslateTag = "cs", whisperTag = "cs"),
@@ -113,7 +115,9 @@ object CaptionLanguages {
         CaptionLanguage(tag = "ps", label = "Pashto", whisperTag = "ps"),
         CaptionLanguage(tag = "fa", label = "Persian", mlKitTranslateTag = "fa", whisperTag = "fa"),
         CaptionLanguage(tag = "pl", label = "Polish", mlKitTranslateTag = "pl", whisperTag = "pl", mlKitBasicLocale = "pl-PL", mlKitAdvancedLocale = "pl-PL"),
-        CaptionLanguage(tag = "pt", label = "Portuguese", mlKitTranslateTag = "pt", whisperTag = "pt", mlKitBasicLocale = "pt-BR", mlKitAdvancedLocale = "pt-PT"),
+        CaptionLanguage(tag = "pt", label = "Portuguese", mlKitTranslateTag = "pt", whisperTag = "pt"),
+        CaptionLanguage(tag = "pt-BR", label = "Portuguese (Brazil)", mlKitTranslateTag = "pt", mlKitBasicLocale = "pt-BR", isUiLanguage = false),
+        CaptionLanguage(tag = "pt-PT", label = "Portuguese (Portugal)", mlKitTranslateTag = "pt", mlKitAdvancedLocale = "pt-PT", isUiLanguage = false),
         CaptionLanguage(tag = "pa", label = "Punjabi", whisperTag = "pa"),
         CaptionLanguage(tag = "ro", label = "Romanian", mlKitTranslateTag = "ro", whisperTag = "ro"),
         CaptionLanguage(tag = "ru", label = "Russian", mlKitTranslateTag = "ru", whisperTag = "ru", mlKitBasicLocale = "ru-RU", mlKitAdvancedLocale = "ru-RU"),
@@ -183,9 +187,10 @@ object CaptionLanguages {
         }
 
     fun targetLanguages(): List<CaptionLanguage> =
-        supported.filter { language ->
-            language.mlKitTranslateTag != null && language.tag == language.mlKitTranslateTag
-        }
+        supported.filter(CaptionLanguage::isTranslationTarget)
+
+    fun uiLanguages(): List<CaptionLanguage> =
+        supported.filter(CaptionLanguage::isUiLanguage)
 
     fun mlKitSpeechLocale(tag: String, engine: SpeechEngineOption): String? =
         find(tag)?.mlKitSpeechLocale(engine)
@@ -211,26 +216,53 @@ object CaptionLanguages {
         engine: SpeechEngineOption,
         translationEnabled: Boolean,
     ): String {
-        val normalized = when (canonicalAlias(tag)) {
-            "zh" -> "zh-TW"
-            else -> canonicalAlias(tag)
-        }
-        return if (sourceLanguages(engine, translationEnabled).any { it.tag == normalized }) {
-            normalized
-        } else {
-            fallbackSourceTag(engine, translationEnabled)
-        }
+        return compatibleSourceTag(tag, engine, translationEnabled)
+            ?: fallbackSourceTag(engine, translationEnabled)
+    }
+
+    fun compatibleSourceTag(
+        tag: String,
+        engine: SpeechEngineOption,
+        translationEnabled: Boolean,
+    ): String? {
+        val normalized = canonicalAlias(tag)
+        val available = sourceLanguages(engine, translationEnabled)
+        return sourceFallbackCandidates(normalized, engine)
+            .firstOrNull { candidate -> available.any { it.tag == candidate } }
     }
 
     fun coerceTargetTag(tag: String): String {
         val normalized = when (canonicalAlias(tag)) {
-            "zh-TW", "zh-CN" -> "zh"
+            "zh", "zh-Hant" -> "zh-TW"
+            "zh-Hans" -> "zh-CN"
+            "pt-BR", "pt-PT" -> "pt"
             else -> canonicalAlias(tag)
         }
         return if (targetLanguages().any { it.tag == normalized }) {
             normalized
         } else {
             DEFAULT_TARGET_TAG
+        }
+    }
+
+    private fun sourceFallbackCandidates(
+        tag: String,
+        engine: SpeechEngineOption,
+    ): List<String> = buildList {
+        add(tag)
+        when (engine) {
+            SpeechEngineOption.WHISPER -> when (tag) {
+                "zh-TW", "zh-CN" -> add("zh")
+                "pt-BR", "pt-PT" -> add("pt")
+            }
+            SpeechEngineOption.MLKIT_BASIC -> when (tag) {
+                "zh" -> add("zh-TW")
+                "pt", "pt-PT" -> add("pt-BR")
+            }
+            SpeechEngineOption.MLKIT_ADVANCED -> when (tag) {
+                "zh" -> add("zh-TW")
+                "pt", "pt-BR" -> add("pt-PT")
+            }
         }
     }
 
@@ -253,5 +285,5 @@ object CaptionLanguages {
         }
 
     private const val DEFAULT_SOURCE_TAG = "en"
-    private const val DEFAULT_TARGET_TAG = "zh"
+    private const val DEFAULT_TARGET_TAG = "zh-TW"
 }

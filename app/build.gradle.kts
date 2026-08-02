@@ -47,6 +47,7 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.mlkit.genai.speech)
     implementation(libs.mlkit.translate)
+    implementation(libs.opencc.java)
     implementation(libs.whisper.android)
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))

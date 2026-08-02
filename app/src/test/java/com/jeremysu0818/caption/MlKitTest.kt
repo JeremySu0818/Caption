@@ -8,7 +8,14 @@ import org.junit.Test
 class MlKitTest {
     @Test
     fun mlKitTranslateTagsMatchOfficialDocs() {
-        assertEquals(officialMlKitTranslateTags, CaptionLanguages.targetLanguages().map { it.tag }.toSet())
+        assertEquals(
+            officialMlKitTranslateTags,
+            CaptionLanguages.targetLanguages().mapNotNull { it.mlKitTranslateTag }.toSet(),
+        )
+        assertEquals(
+            (officialMlKitTranslateTags - "zh") + setOf("zh-TW", "zh-CN"),
+            CaptionLanguages.targetLanguages().map { it.tag }.toSet(),
+        )
     }
 
     @Test
@@ -58,14 +65,28 @@ class MlKitTest {
     fun specialCodeMappingsStayOfficial() {
         assertEquals("zh", CaptionLanguages.requireMlKitTranslateTag("zh-TW"))
         assertEquals("zh", CaptionLanguages.requireMlKitTranslateTag("zh-CN"))
-        assertEquals("zh", CaptionLanguages.requireWhisperLanguageTag("zh-TW"))
-        assertEquals("zh", CaptionLanguages.requireWhisperLanguageTag("zh-CN"))
+        assertEquals("zh", CaptionLanguages.requireWhisperLanguageTag("zh"))
+        assertEquals(null, CaptionLanguages.whisperLanguageTag("zh-TW"))
+        assertEquals(null, CaptionLanguages.whisperLanguageTag("zh-CN"))
         assertEquals("jw", CaptionLanguages.requireWhisperLanguageTag("jv"))
-        assertEquals("pt-BR", CaptionLanguages.requireMlKitSpeechLocale("pt", SpeechEngineOption.MLKIT_BASIC))
-        assertEquals("pt-PT", CaptionLanguages.requireMlKitSpeechLocale("pt", SpeechEngineOption.MLKIT_ADVANCED))
+        assertEquals("pt-BR", CaptionLanguages.requireMlKitSpeechLocale("pt-BR", SpeechEngineOption.MLKIT_BASIC))
+        assertEquals("pt-PT", CaptionLanguages.requireMlKitSpeechLocale("pt-PT", SpeechEngineOption.MLKIT_ADVANCED))
+        assertEquals("zh", CaptionLanguages.coerceSourceTag("zh-TW", SpeechEngineOption.WHISPER, false))
         assertEquals("zh-TW", CaptionLanguages.coerceSourceTag("zh", SpeechEngineOption.MLKIT_BASIC, false))
-        assertEquals("zh", CaptionLanguages.coerceTargetTag("zh-TW"))
-        assertEquals("zh", CaptionLanguages.coerceTargetTag("zh-CN"))
+        assertEquals("pt-BR", CaptionLanguages.coerceSourceTag("pt", SpeechEngineOption.MLKIT_BASIC, false))
+        assertEquals("pt-PT", CaptionLanguages.coerceSourceTag("pt-BR", SpeechEngineOption.MLKIT_ADVANCED, false))
+        assertEquals("pt", CaptionLanguages.coerceSourceTag("pt-PT", SpeechEngineOption.WHISPER, false))
+        assertEquals(
+            "pt-PT",
+            CaptionLanguages.compatibleSourceTag("pt-BR", SpeechEngineOption.MLKIT_ADVANCED, false),
+        )
+        assertEquals(
+            null,
+            CaptionLanguages.compatibleSourceTag("eo", SpeechEngineOption.MLKIT_ADVANCED, false),
+        )
+        assertEquals("zh-TW", CaptionLanguages.coerceTargetTag("zh"))
+        assertEquals("zh-TW", CaptionLanguages.coerceTargetTag("zh-TW"))
+        assertEquals("zh-CN", CaptionLanguages.coerceTargetTag("zh-CN"))
     }
 
     companion object {
@@ -104,22 +125,20 @@ class MlKitTest {
             "mg", "as", "tt", "haw", "ln", "ha", "ba", "jw", "su", "yue",
         )
 
-        private val expectedWhisperSourceTags = (officialWhisperTags - setOf("zh", "jw")) + setOf(
-            "zh-TW", "zh-CN", "jv",
-        )
+        private val expectedWhisperSourceTags = (officialWhisperTags - "jw") + "jv"
 
         private val expectedWhisperTranslatedSourceTags =
-            (officialWhisperTags intersect officialMlKitTranslateTags) - setOf("zh") + setOf("zh-TW", "zh-CN")
+            officialWhisperTags intersect officialMlKitTranslateTags
 
         private val expectedMlKitBasicSourceTags = setOf(
             "en", "fr", "it", "de", "es",
-            "hi", "ja", "pt", "tr", "pl",
+            "hi", "ja", "pt-BR", "tr", "pl",
             "zh-CN", "ko", "zh-TW", "ru", "vi",
         )
 
         private val expectedMlKitAdvancedSourceTags = setOf(
             "en", "ko", "es", "fr", "de",
-            "it", "pt", "zh-CN", "zh-TW", "ja",
+            "it", "pt-PT", "zh-CN", "zh-TW", "ja",
             "th", "ru", "nl", "da", "sv",
             "pl", "hi", "vi", "id", "ar", "tr",
         )
