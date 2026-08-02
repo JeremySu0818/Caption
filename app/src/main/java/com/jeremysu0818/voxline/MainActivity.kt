@@ -1353,9 +1353,8 @@ private fun WhisperModelSection(
             ) {
                 if (selectedDownloadState.isDownloading) {
                     LoadingIndicator(
-                        progress = { animatedDownloadProgress },
                         modifier = Modifier.size(28.dp),
-                        color = statusContentColor,
+                        color = MaterialTheme.colorScheme.primary,
                     )
                 } else {
                     Icon(painter = painterResource(statusIcon), contentDescription = null)
