@@ -61,7 +61,7 @@
   "model_downloading_status": "מאָדעל דאַונלאָודינג {פּראָגרעס} · {גרייס} · {גיכקייַט}",
   "error_checksum_failed": "מאָדעל וואַלאַדיישאַן ניט אַנדערש: SHA-1 פון {מאָדעל} שטימען נישט מיט דער באַאַמטער אַרקייוו.",
   "error_download_failed": "מאָדעל אראפקאפיע איז ניט אַנדערש",
-  "error_accessibility_service_unavailable": "די Caption Accessibility Service איז נישט קאָננעקטעד. וואַרטן אַ מאָמענט און פּרובירן ווידער.",
+  "error_accessibility_service_unavailable": "די Voxline Accessibility Service איז נישט קאָננעקטעד. וואַרטן אַ מאָמענט און פּרובירן ווידער.",
   "error_model_download_requires_network": "די רעדע מאָדעל איז נישט דאַונלאָודיד. פאַרבינדן צו די אינטערנעט און פּרובירן ווידער.",
   "error_http": "מאָדעל אראפקאפיע הטטפּ {קאָדע}",
   "error_sha1_mismatch": "SHA-1 מיספּאַסטש, געריכט {דערוואַרט}, פאַקטיש {פאַקטיש}",

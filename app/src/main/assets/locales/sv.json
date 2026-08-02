@@ -61,7 +61,7 @@
   "model_downloading_status": "Modell laddar ned {progress} · {size} · {speed}",
   "error_checksum_failed": "Modellvalidering misslyckades: SHA-1 för {model} matchar inte det officiella arkivet.",
   "error_download_failed": "Nedladdning av modell misslyckades",
-  "error_accessibility_service_unavailable": "Tjänsten Caption Accessibility är inte ansluten. Vänta ett ögonblick och försök igen.",
+  "error_accessibility_service_unavailable": "Tjänsten Voxline Accessibility är inte ansluten. Vänta ett ögonblick och försök igen.",
   "error_model_download_requires_network": "Talmodellen har inte laddats ner. Anslut till internet och försök igen.",
   "error_http": "Modellnedladdning HTTP {code}",
   "error_sha1_mismatch": "SHA-1-felmatchning, förväntad {expected}, faktisk {actual}",

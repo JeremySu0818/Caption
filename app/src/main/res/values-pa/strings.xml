@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Caption</string>
+    <string name="app_name">Voxline</string>
     <string name="notification_channel_name">ਲਾਈਵ ਸੁਰਖੀ</string>
     <string name="notification_title">ਲਾਈਵ ਸੁਰਖੀ ਚੱਲ ਰਹੀ ਹੈ</string>
     <string name="action_stop">ਰੁਕੋ</string>

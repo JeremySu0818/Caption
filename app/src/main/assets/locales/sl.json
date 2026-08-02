@@ -61,7 +61,7 @@
   "model_downloading_status": "Prenos modela {progress} · {size} · {speed}",
   "error_checksum_failed": "Preverjanje modela ni uspelo: SHA-1 za {model} se ne ujema z uradnim arhivom.",
   "error_download_failed": "Prenos modela ni uspel",
-  "error_accessibility_service_unavailable": "Storitev Caption Accessibility ni povezana. Počakajte trenutek in poskusite znova.",
+  "error_accessibility_service_unavailable": "Storitev Voxline Accessibility ni povezana. Počakajte trenutek in poskusite znova.",
   "error_model_download_requires_network": "Govorni model ni bil prenesen. Povežite se z internetom in poskusite znova.",
   "error_http": "Prenos modela HTTP {code}",
   "error_sha1_mismatch": "Neujemanje SHA-1, pričakovano {pričakovano}, dejansko {dejansko}",

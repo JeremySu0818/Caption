@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Caption</string>
+    <string name="app_name">Voxline</string>
     <string name="notification_channel_name">लाइभ क्याप्सन</string>
     <string name="notification_title">लाइभ क्याप्सन चलिरहेको छ</string>
     <string name="action_stop">रोक्नुहोस्</string>

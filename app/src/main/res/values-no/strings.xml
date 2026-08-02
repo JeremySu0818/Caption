@@ -1,7 +1,7 @@
 <resources>
-    <string name="app_name">Caption</string>
+    <string name="app_name">Voxline</string>
     <string name="notification_channel_name">Direktetekst</string>
-    <string name="notification_title">Live Caption kjører</string>
+    <string name="notification_title">Live Voxline kjører</string>
     <string name="action_stop">Stopp</string>
     <string name="tile_label">Direktetekst</string>
     <string name="tile_subtitle_on">Løper</string>

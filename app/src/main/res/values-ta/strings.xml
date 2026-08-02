@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Caption</string>
+    <string name="app_name">Voxline</string>
     <string name="notification_channel_name">நேரடி தலைப்பு</string>
     <string name="notification_title">நேரடி வசனம் இயங்குகிறது</string>
     <string name="action_stop">நிறுத்து</string>

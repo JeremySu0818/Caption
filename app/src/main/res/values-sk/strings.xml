@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Caption</string>
+    <string name="app_name">Voxline</string>
     <string name="notification_channel_name">Živý prepis</string>
     <string name="notification_title">Živý prepis je spustený</string>
     <string name="action_stop">Stop</string>

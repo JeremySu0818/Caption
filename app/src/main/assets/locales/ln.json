@@ -61,7 +61,7 @@
   "model_downloading_status": "Téléchargement ya modèle {progress} · {taille} · {vitesse}",
   "error_checksum_failed": "Validation ya modèle elongi te: SHA-1 ya {modèle} ekokani te na archive officiel.",
   "error_download_failed": "Téléchargement ya modèle elongi te",
-  "error_accessibility_service_unavailable": "Service ya Accessibilité ya Caption ezali connecté te. Zelá mwa moke mpe meká lisusu.",
+  "error_accessibility_service_unavailable": "Service ya Accessibilité ya Voxline ezali connecté te. Zelá mwa moke mpe meká lisusu.",
   "error_model_download_requires_network": "Modèle ya discours e téléchargé te. Connecter na internet pe meka lisusu.",
   "error_http": "Modèle téléchargement HTTP {code}.",
   "error_sha1_mismatch": "SHA-1 mismatch, ezelamaki {ezelamaki}, ya solo {ya solo}",

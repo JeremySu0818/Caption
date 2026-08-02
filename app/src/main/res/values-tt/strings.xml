@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Caption</string>
+    <string name="app_name">Voxline</string>
     <string name="notification_channel_name">Тере язу</string>
     <string name="notification_title">Тере язу эшли</string>
     <string name="action_stop">Тукта</string>

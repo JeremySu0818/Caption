@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Caption</string>
+    <string name="app_name">Voxline</string>
     <string name="notification_channel_name">Reaalajas subtiitrid</string>
     <string name="notification_title">Reaalajas subtiitrid töötavad</string>
     <string name="action_stop">Peatus</string>

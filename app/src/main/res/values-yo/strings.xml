@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Caption</string>
+    <string name="app_name">Voxline</string>
     <string name="notification_channel_name">Ifiweranṣẹ Live</string>
     <string name="notification_title">Ifiweranṣẹ Live nṣiṣẹ</string>
     <string name="action_stop">Duro</string>
@@ -7,5 +7,5 @@
     <string name="tile_subtitle_on">Nṣiṣẹ</string>
     <string name="tile_subtitle_off">Fọwọ ba lati bẹrẹ</string>
     <string name="accessibility_service_label">Ifiweranṣẹ Iṣẹ Wiwọle</string>
-    <string name="accessibility_service_description">Faye gba Caption lati ṣe afihan awọn akọle lilefoofo lori awọn ohun elo miiran nipa lilo agbekọja eto.</string>
+    <string name="accessibility_service_description">Faye gba Voxline lati ṣe afihan awọn akọle lilefoofo lori awọn ohun elo miiran nipa lilo agbekọja eto.</string>
 </resources>

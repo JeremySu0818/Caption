@@ -61,7 +61,7 @@
   "model_downloading_status": "Hoʻoiho ʻana i nā kumu hoʻohālike { holomua} · {nui} · {wikiwiki}",
   "error_checksum_failed": "ʻAʻole i kūpono ka hōʻoia ʻana o ke kumu hoʻohālike: SHA-1 o {model} ʻaʻole i kūlike me ka waihona kūhelu.",
   "error_download_failed": "ʻAʻole hiki ke hoʻoiho ʻia nā kumu hoʻohālike",
-  "error_accessibility_service_unavailable": "ʻAʻole pili ka Caption Accessibility Service. E kali a ho'āʻo hou.",
+  "error_accessibility_service_unavailable": "ʻAʻole pili ka Voxline Accessibility Service. E kali a ho'āʻo hou.",
   "error_model_download_requires_network": "ʻAʻole i hoʻoiho ʻia ke kumu hoʻohālike haʻiʻōlelo. Hoʻohui i ka pūnaewele a hoʻāʻo hou.",
   "error_http": "Hoʻoiho i ke kumu hoʻohālike HTTP {code}",
   "error_sha1_mismatch": "Kūlike ʻole SHA-1, manaʻo ʻia {manaʻo ʻia}, ʻoiaʻiʻo {actual}",

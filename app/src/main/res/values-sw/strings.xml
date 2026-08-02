@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Caption</string>
+    <string name="app_name">Voxline</string>
     <string name="notification_channel_name">Manukuu Papo Hapo</string>
     <string name="notification_title">Manukuu Papo Hapo yanaendeshwa</string>
     <string name="action_stop">Acha</string>

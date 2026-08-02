@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Caption</string>
+    <string name="app_name">Voxline</string>
     <string name="notification_channel_name">Ζωντανός υπότιτλος</string>
     <string name="notification_title">Ο Ζωντανός υπότιτλος εκτελείται</string>
     <string name="action_stop">Σταμάτα</string>
@@ -7,5 +7,5 @@
     <string name="tile_subtitle_on">Τρέξιμο</string>
     <string name="tile_subtitle_off">Πατήστε για να ξεκινήσετε</string>
     <string name="accessibility_service_label">Υπηρεσίες προσβασιμότητας υπότιτλων</string>
-    <string name="accessibility_service_description">Επιτρέπει στο Caption να εμφανίζει κυμαινόμενους υπότιτλους πάνω από άλλες εφαρμογές χρησιμοποιώντας επικάλυψη συστήματος.</string>
+    <string name="accessibility_service_description">Επιτρέπει στο Voxline να εμφανίζει κυμαινόμενους υπότιτλους πάνω από άλλες εφαρμογές χρησιμοποιώντας επικάλυψη συστήματος.</string>
 </resources>

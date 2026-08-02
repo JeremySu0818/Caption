@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Caption</string>
+    <string name="app_name">Voxline</string>
     <string name="notification_channel_name">Sous-titre en direct</string>
     <string name="notification_title">Les sous-titres en direct sont en cours d\'exécution</string>
     <string name="action_stop">Arrêter</string>
@@ -7,5 +7,5 @@
     <string name="tile_subtitle_on">Courir</string>
     <string name="tile_subtitle_off">Appuyez pour commencer</string>
     <string name="accessibility_service_label">Service d\'accessibilité des sous-titres</string>
-    <string name="accessibility_service_description">Permet à Caption d\'afficher des sous-titres flottants sur d\'autres applications à l\'aide d\'une superposition système.</string>
+    <string name="accessibility_service_description">Permet à Voxline d\'afficher des sous-titres flottants sur d\'autres applications à l\'aide d\'une superposition système.</string>
 </resources>

@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Caption</string>
+    <string name="app_name">Voxline</string>
     <string name="notification_channel_name">ప్రత్యక్ష శీర్షిక</string>
     <string name="notification_title">ప్రత్యక్ష శీర్షిక అమలవుతోంది</string>
     <string name="action_stop">ఆపు</string>

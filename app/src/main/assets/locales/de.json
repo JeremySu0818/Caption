@@ -61,7 +61,7 @@
   "model_downloading_status": "Modell wird heruntergeladen: {progress} · {size} · {speed}",
   "error_checksum_failed": "Modellvalidierung fehlgeschlagen: SHA-1 von {model} stimmt nicht mit dem offiziellen Archiv überein.",
   "error_download_failed": "Modell-Download fehlgeschlagen",
-  "error_accessibility_service_unavailable": "Der Caption Accessibility Service ist nicht verbunden. Warten Sie einen Moment und versuchen Sie es erneut.",
+  "error_accessibility_service_unavailable": "Der Voxline Accessibility Service ist nicht verbunden. Warten Sie einen Moment und versuchen Sie es erneut.",
   "error_model_download_requires_network": "Das Sprachmodell wurde nicht heruntergeladen. Stellen Sie eine Verbindung zum Internet her und versuchen Sie es erneut.",
   "error_http": "Modell-Download HTTP {Code}",
   "error_sha1_mismatch": "SHA-1-Nichtübereinstimmung, erwartet {expected}, tatsächlich {actual}",

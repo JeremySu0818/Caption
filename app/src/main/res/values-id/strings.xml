@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Caption</string>
+    <string name="app_name">Voxline</string>
     <string name="notification_channel_name">Teks Langsung</string>
     <string name="notification_title">Teks Otomatis sedang berjalan</string>
     <string name="action_stop">Berhenti</string>

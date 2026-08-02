@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Caption</string>
+    <string name="app_name">Voxline</string>
     <string name="notification_channel_name">Ливе Цаптион</string>
     <string name="notification_title">Титл уживо је покренут</string>
     <string name="action_stop">Стани</string>

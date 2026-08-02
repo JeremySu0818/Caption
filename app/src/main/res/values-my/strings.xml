@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Caption</string>
+    <string name="app_name">Voxline</string>
     <string name="notification_channel_name">တိုက်ရိုက်စာတန်း</string>
     <string name="notification_title">တိုက်ရိုက်စာတန်းကို လုပ်ဆောင်နေပါသည်။</string>
     <string name="action_stop">ရပ်လိုက်ပါ။</string>

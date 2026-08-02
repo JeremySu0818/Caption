@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Caption</string>
+    <string name="app_name">Voxline</string>
     <string name="notification_channel_name">Qoraal toos ah</string>
     <string name="notification_title">Qoraal toos ah ayaa socda</string>
     <string name="action_stop">Jooji</string>

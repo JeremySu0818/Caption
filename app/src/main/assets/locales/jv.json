@@ -1,5 +1,5 @@
 {
-  "app_name": "Caption",
+  "app_name": "Voxline",
   "settings": "Setelan",
   "mlkit_advanced_unsupported": "Piranti saiki ora ndhukung ML Kit Advanced",
   "start_caption": "Aktifake subtitles",
@@ -61,7 +61,7 @@
   "model_downloading_status": "Ngundhuh model {progress} · {size} · {speed}",
   "error_checksum_failed": "Validasi model gagal: SHA-1 saka {model} ora cocog karo arsip resmi.",
   "error_download_failed": "Download model gagal",
-  "error_accessibility_service_unavailable": "Layanan Aksesibilitas Caption ora nyambung. Enteni sedhela lan coba maneh.",
+  "error_accessibility_service_unavailable": "Layanan Aksesibilitas Voxline ora nyambung. Enteni sedhela lan coba maneh.",
   "error_model_download_requires_network": "Model wicara durung diundhuh. Sambungake menyang internet lan coba maneh.",
   "error_http": "Download model HTTP {kode}",
   "error_sha1_mismatch": "SHA-1 ora cocog, samesthine {diarepake}, aktual {aktual}",

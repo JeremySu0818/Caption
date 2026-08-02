@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Caption</string>
+    <string name="app_name">Voxline</string>
     <string name="notification_channel_name">Napis na żywo</string>
     <string name="notification_title">Napisy na żywo są uruchomione</string>
     <string name="action_stop">Zatrzymaj się</string>

@@ -11,7 +11,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
 
     <application
-        android:name=".CaptionApplication"
+        android:name=".VoxlineApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -19,12 +19,12 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Caption">
+        android:theme="@style/Theme.Voxline">
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:launchMode="singleTop"
-            android:theme="@style/Theme.Caption"
+            android:theme="@style/Theme.Voxline"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -37,15 +37,15 @@
             android:name=".ProjectionPermissionActivity"
             android:excludeFromRecents="true"
             android:exported="false"
-            android:theme="@style/Theme.Caption.Transparent" />
+            android:theme="@style/Theme.Voxline.Transparent" />
 
         <service
-            android:name=".service.CaptionCaptureService"
+            android:name=".service.VoxlineCaptureService"
             android:exported="false"
             android:foregroundServiceType="mediaProjection" />
 
         <service
-            android:name=".accessibility.CaptionAccessibilityService"
+            android:name=".accessibility.VoxlineAccessibilityService"
             android:exported="true"
             android:label="@string/accessibility_service_label"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
@@ -54,13 +54,13 @@
             </intent-filter>
             <meta-data
                 android:name="android.accessibilityservice"
-                android:resource="@xml/caption_accessibility_service" />
+                android:resource="@xml/voxline_accessibility_service" />
         </service>
 
         <service
-            android:name=".tile.CaptionTileService"
+            android:name=".tile.VoxlineTileService"
             android:exported="true"
-            android:icon="@drawable/ic_tile_caption"
+            android:icon="@drawable/ic_tile_voxline"
             android:label="@string/tile_label"
             android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
             <intent-filter>

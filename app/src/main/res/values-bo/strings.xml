@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Caption</string>
+    <string name="app_name">Voxline</string>
     <string name="notification_channel_name">ཐད་གཏོང་འཆར།</string>
     <string name="notification_title">ཐད་གཏོང་འགྲེལ་བརྗོད་བྱེད་བཞིན་ཡོད།</string>
     <string name="action_stop">མཚམས་འཇོག་པ།</string>

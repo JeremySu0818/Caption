@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Caption</string>
+    <string name="app_name">Voxline</string>
     <string name="notification_channel_name">සජීවී සිරස්තල</string>
     <string name="notification_title">සජීවී සිරස්තල ධාවනය වේ</string>
     <string name="action_stop">නවත්වන්න</string>

@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Caption</string>
+    <string name="app_name">Voxline</string>
     <string name="notification_channel_name">የቀጥታ መግለጫ ጽሑፍ</string>
     <string name="notification_title">የቀጥታ መግለጫ ጽሑፍ እያሄደ ነው።</string>
     <string name="action_stop">አቁም</string>

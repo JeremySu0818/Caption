@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Caption</string>
+    <string name="app_name">Voxline</string>
     <string name="notification_channel_name">Jonli izoh</string>
     <string name="notification_title">Jonli taglavha ishlamoqda</string>
     <string name="action_stop">To\'xtang</string>

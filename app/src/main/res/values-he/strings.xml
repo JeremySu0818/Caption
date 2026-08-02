@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Caption</string>
+    <string name="app_name">Voxline</string>
     <string name="notification_channel_name">כיתוב חי</string>
     <string name="notification_title">כתוביות חיות פועלות</string>
     <string name="action_stop">עצור</string>

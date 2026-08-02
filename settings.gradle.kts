@@ -22,5 +22,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Caption"
+rootProject.name = "Voxline"
 include(":app")

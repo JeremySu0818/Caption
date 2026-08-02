@@ -61,7 +61,7 @@
   "model_downloading_status": "मॉडल डाउनलोडिंग् {प्रगतिः} · {आकारः} · {गतिः}",
   "error_checksum_failed": "मॉडल् प्रमाणीकरणं विफलम्: {model} इत्यस्य SHA-1 आधिकारिकसंग्रहेण सह न मेलति ।",
   "error_download_failed": "मॉडल् डाउनलोड् विफलम् अभवत्",
-  "error_accessibility_service_unavailable": "Caption Accessibility Service न सम्बद्धा अस्ति। क्षणं प्रतीक्ष्य पुनः प्रयासं कुर्वन्तु।",
+  "error_accessibility_service_unavailable": "Voxline Accessibility Service न सम्बद्धा अस्ति। क्षणं प्रतीक्ष्य पुनः प्रयासं कुर्वन्तु।",
   "error_model_download_requires_network": "भाषणप्रतिरूपं न अवतरणं कृतम्। अन्तर्जालसङ्गणकेन सह सम्बद्धं कृत्वा पुनः प्रयासं कुर्वन्तु।",
   "error_http": "मॉडल डाउनलोड HTTP {कोड} .",
   "error_sha1_mismatch": "SHA-1 असङ्गतिः, अपेक्षितः {अपेक्षितः}, वास्तविकः {वास्तविक}",

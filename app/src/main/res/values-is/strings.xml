@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Caption</string>
+    <string name="app_name">Voxline</string>
     <string name="notification_channel_name">Texti í beinni</string>
     <string name="notification_title">Texti í beinni er í gangi</string>
     <string name="action_stop">Hættu</string>

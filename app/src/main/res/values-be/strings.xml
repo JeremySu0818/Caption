@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Caption</string>
+    <string name="app_name">Voxline</string>
     <string name="notification_channel_name">Жывыя субцітры</string>
     <string name="notification_title">Жывыя субцітры запушчаны</string>
     <string name="action_stop">Стоп</string>
@@ -7,5 +7,5 @@
     <string name="tile_subtitle_on">Бег</string>
     <string name="tile_subtitle_off">Націсніце, каб пачаць</string>
     <string name="accessibility_service_label">Служба даступнасці субцітраў</string>
-    <string name="accessibility_service_description">Дазваляе Caption паказваць плаваючыя субцітры над іншымі праграмамі з дапамогай сістэмнага накладання.</string>
+    <string name="accessibility_service_description">Дазваляе Voxline паказваць плаваючыя субцітры над іншымі праграмамі з дапамогай сістэмнага накладання.</string>
 </resources>

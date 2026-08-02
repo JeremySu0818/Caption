@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Caption</string>
+    <string name="app_name">Voxline</string>
     <string name="notification_channel_name">即時字幕</string>
     <string name="notification_title">即時字幕執行緊</string>
     <string name="action_stop">停低</string>
@@ -7,5 +7,5 @@
     <string name="tile_subtitle_on">跑緊</string>
     <string name="tile_subtitle_off">㩒一下就可以開始</string>
     <string name="accessibility_service_label">字幕冇障礙服務</string>
-    <string name="accessibility_service_description">畀 Caption 用系統重疊喺其他應用程式上面顯示浮動字幕。</string>
+    <string name="accessibility_service_description">畀 Voxline 用系統重疊喺其他應用程式上面顯示浮動字幕。</string>
 </resources>

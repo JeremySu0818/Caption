@@ -61,7 +61,7 @@
   "model_downloading_status": "Modeloa deskargatzen {aurrerapena} · {tamaina} · {abiadura}",
   "error_checksum_failed": "Eredua baliozkotzeak huts egin du: {model}-ren SHA-1 ez dator bat artxibo ofizialarekin.",
   "error_download_failed": "Ezin izan da deskargatu eredua",
-  "error_accessibility_service_unavailable": "Caption Irisgarritasun Zerbitzua ez dago konektatuta. Itxaron pixka bat eta saiatu berriro.",
+  "error_accessibility_service_unavailable": "Voxline Irisgarritasun Zerbitzua ez dago konektatuta. Itxaron pixka bat eta saiatu berriro.",
   "error_model_download_requires_network": "Hizketa-eredua ez da deskargatu. Konektatu Internetera eta saiatu berriro.",
   "error_http": "Modelo deskargatu HTTP {code}",
   "error_sha1_mismatch": "SHA-1 bat ez datoz, espero zen {espero}, benetako {benetako}",

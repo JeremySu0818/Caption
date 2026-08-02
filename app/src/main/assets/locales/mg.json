@@ -1,5 +1,5 @@
 {
-  "app_name": "Caption",
+  "app_name": "Voxline",
   "settings": "Settings",
   "mlkit_advanced_unsupported": "Tsy mahazaka ML Kit Advanced ny fitaovana ankehitriny",
   "start_caption": "Alefaso ny dikanteny",
@@ -61,7 +61,7 @@
   "model_downloading_status": "Fampidinana modely {fandrosoana} · {habe} · {haingam-pandeha}",
   "error_checksum_failed": "Tsy nahomby ny fanamarinana modely: SHA-1 amin'ny {model} dia tsy mifanaraka amin'ny tahiry ofisialy.",
   "error_download_failed": "Tsy nahomby ny fampidinana modely",
-  "error_accessibility_service_unavailable": "Tsy mifandray ny Service Accessibility Caption. Andraso kely ary andramo indray.",
+  "error_accessibility_service_unavailable": "Tsy mifandray ny Service Accessibility Voxline. Andraso kely ary andramo indray.",
   "error_model_download_requires_network": "Tsy mbola alaina ny maodelin'ny kabary. Mifandraisa amin'ny Internet ary andramo indray.",
   "error_http": "Modely misintona HTTP {code}",
   "error_sha1_mismatch": "SHA-1 tsy mifanandrify, nantenaina {expected}, tena {tena}",

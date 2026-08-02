@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Caption</string>
+    <string name="app_name">Voxline</string>
     <string name="notification_channel_name">Tapanga Ora</string>
     <string name="notification_title">Kei te haere te Tapanga Ora</string>
     <string name="action_stop">Kati</string>

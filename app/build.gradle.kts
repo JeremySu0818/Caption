@@ -4,13 +4,13 @@ plugins {
 }
 
 android {
-    namespace = "com.jeremysu0818.caption"
+    namespace = "com.jeremysu0818.voxline"
     compileSdk {
         version = release(37)
     }
 
     defaultConfig {
-        applicationId = "com.jeremysu0818.caption"
+        applicationId = "com.jeremysu0818.voxline"
         minSdk = 29
         targetSdk = 36
         versionCode = 1

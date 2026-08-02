@@ -61,7 +61,7 @@
   "model_downloading_status": "Modell eroflueden {Progress} · {Gréisst} · {Speed}",
   "error_checksum_failed": "Modellvalidatioun gescheitert: SHA-1 vum {model} entsprécht net dem offiziellen Archiv.",
   "error_download_failed": "Modell Download gescheitert",
-  "error_accessibility_service_unavailable": "De Caption Accessibility Service ass net ugeschloss. Waart e Moment a probéiert nach eng Kéier.",
+  "error_accessibility_service_unavailable": "De Voxline Accessibility Service ass net ugeschloss. Waart e Moment a probéiert nach eng Kéier.",
   "error_model_download_requires_network": "De Riedmodell gouf net erofgelueden. Connect op den Internet a probéiert nach eng Kéier.",
   "error_http": "Modell Download HTTP {code}",
   "error_sha1_mismatch": "SHA-1 Mëssverständnis, erwaart {expected}, tatsächlech {actual}",

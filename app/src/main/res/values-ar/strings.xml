@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Caption</string>
+    <string name="app_name">Voxline</string>
     <string name="notification_channel_name">التسميات التوضيحية المباشرة</string>
     <string name="notification_title">جارٍ تشغيل ميزة \"النسخ النصي التلقائي\".</string>
     <string name="action_stop">توقف</string>

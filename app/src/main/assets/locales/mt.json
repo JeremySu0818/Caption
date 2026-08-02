@@ -1,5 +1,5 @@
 {
-  "app_name": "Caption",
+  "app_name": "Voxline",
   "settings": "Settings",
   "mlkit_advanced_unsupported": "L-apparat attwali ma jappoġġjax ML Kit Advanced",
   "start_caption": "Ippermetti sottotitli",
@@ -61,7 +61,7 @@
   "model_downloading_status": "Tniżżil tal-mudell {progress} · {daqs} · {veloċità}",
   "error_checksum_failed": "Il-validazzjoni tal-mudell falliet: SHA-1 ta' {model} ma jaqbilx mal-arkivju uffiċjali.",
   "error_download_failed": "It-tniżżil tal-mudell falla",
-  "error_accessibility_service_unavailable": "Is-Servizz tal-Aċċessibilità tal-Caption mhuwiex konness. Stenna ftit u erġa' pprova.",
+  "error_accessibility_service_unavailable": "Is-Servizz tal-Aċċessibilità tal-Voxline mhuwiex konness. Stenna ftit u erġa' pprova.",
   "error_model_download_requires_network": "Il-mudell tad-diskors ma ġiex imniżżel. Qabbad mal-internet u erġa' pprova.",
   "error_http": "Niżżel il-mudell HTTP {kodiċi}",
   "error_sha1_mismatch": "SHA-1 nuqqas ta' qbil, mistenni {mistennija}, attwali {attwali}",

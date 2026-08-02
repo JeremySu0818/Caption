@@ -1,0 +1,43 @@
+package com.jeremysu0818.voxline.ui.theme
+
+import androidx.compose.ui.graphics.Color
+
+// Used only when Android's dynamic color is unavailable. Pixels continue to use
+// the user's wallpaper-derived Material You palette by default.
+val VoxlinePrimaryLight = Color(0xFF006A6A)
+val VoxlineOnPrimaryLight = Color(0xFFFFFFFF)
+val VoxlinePrimaryContainerLight = Color(0xFF6FF7F6)
+val VoxlineOnPrimaryContainerLight = Color(0xFF002020)
+val VoxlineSecondaryLight = Color(0xFF4A6363)
+val VoxlineOnSecondaryLight = Color(0xFFFFFFFF)
+val VoxlineSecondaryContainerLight = Color(0xFFCDE8E7)
+val VoxlineOnSecondaryContainerLight = Color(0xFF051F1F)
+val VoxlineTertiaryLight = Color(0xFF4B607C)
+val VoxlineOnTertiaryLight = Color(0xFFFFFFFF)
+val VoxlineTertiaryContainerLight = Color(0xFFD3E4FF)
+val VoxlineOnTertiaryContainerLight = Color(0xFF041D36)
+val VoxlineBackgroundLight = Color(0xFFF7FBFA)
+val VoxlineOnBackgroundLight = Color(0xFF181C1C)
+val VoxlineSurfaceVariantLight = Color(0xFFDAE5E3)
+val VoxlineOnSurfaceVariantLight = Color(0xFF3F4948)
+val VoxlineOutlineLight = Color(0xFF6F7978)
+val VoxlineOutlineVariantLight = Color(0xFFBFC9C7)
+
+val VoxlinePrimaryDark = Color(0xFF4DDADA)
+val VoxlineOnPrimaryDark = Color(0xFF003737)
+val VoxlinePrimaryContainerDark = Color(0xFF004F4F)
+val VoxlineOnPrimaryContainerDark = Color(0xFF6FF7F6)
+val VoxlineSecondaryDark = Color(0xFFB1CCCB)
+val VoxlineOnSecondaryDark = Color(0xFF1C3534)
+val VoxlineSecondaryContainerDark = Color(0xFF334B4A)
+val VoxlineOnSecondaryContainerDark = Color(0xFFCDE8E7)
+val VoxlineTertiaryDark = Color(0xFFB3C8E8)
+val VoxlineOnTertiaryDark = Color(0xFF1C324B)
+val VoxlineTertiaryContainerDark = Color(0xFF334963)
+val VoxlineOnTertiaryContainerDark = Color(0xFFD3E4FF)
+val VoxlineBackgroundDark = Color(0xFF101414)
+val VoxlineOnBackgroundDark = Color(0xFFDFE3E2)
+val VoxlineSurfaceVariantDark = Color(0xFFBEC9C7)
+val VoxlineOnSurfaceVariantDark = Color(0xFF3F4948)
+val VoxlineOutlineDark = Color(0xFF899391)
+val VoxlineOutlineVariantDark = Color(0xFF3F4948)
