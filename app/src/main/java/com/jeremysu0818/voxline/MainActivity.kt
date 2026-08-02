@@ -133,12 +133,7 @@ class MainActivity : ComponentActivity() {
         }
         setContent {
             val settings by VoxlineGraph.preferences.settings.collectAsState()
-            val darkTheme = when (settings.themeMode) {
-                ThemeMode.SYSTEM -> isSystemInDarkTheme()
-                ThemeMode.LIGHT -> false
-                ThemeMode.DARK -> true
-            }
-            VoxlineTheme(darkTheme = darkTheme) {
+            VoxlineTheme(themeMode = settings.themeMode) {
                 VoxlineApp(
                     startRequestCount = startRequestCount,
                     resumeCount = resumeCount,

@@ -16,6 +16,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 
+import com.jeremysu0818.voxline.data.ThemeMode
+
 private val DarkColorScheme = darkColorScheme(
     primary = VoxlinePrimaryDark,
     onPrimary = VoxlineOnPrimaryDark,
@@ -37,22 +39,22 @@ private val DarkColorScheme = darkColorScheme(
     onSurfaceVariant = VoxlineOnSurfaceVariantDark,
     outline = VoxlineOutlineDark,
     outlineVariant = VoxlineOutlineVariantDark,
-    error = Color(0xFFFFB4AB),
-    onError = Color(0xFF690005),
-    errorContainer = Color(0xFF93000A),
-    onErrorContainer = Color(0xFFFFDAD6),
-    inverseSurface = Color(0xFFDFE3E2),
-    inverseOnSurface = Color(0xFF2D3130),
+    error = VoxlineErrorDark,
+    onError = VoxlineOnErrorDark,
+    errorContainer = VoxlineErrorContainerDark,
+    onErrorContainer = VoxlineOnErrorContainerDark,
+    inverseSurface = Color(0xFFDDE4E1),
+    inverseOnSurface = Color(0xFF2B3230),
     inversePrimary = VoxlinePrimaryLight,
     surfaceTint = VoxlinePrimaryDark,
     scrim = Color.Black,
-    surfaceDim = Color(0xFF101414),
-    surfaceBright = Color(0xFF363A39),
-    surfaceContainerLowest = Color(0xFF0B0F0F),
-    surfaceContainerLow = Color(0xFF181C1C),
-    surfaceContainer = Color(0xFF1C2020),
-    surfaceContainerHigh = Color(0xFF262B2A),
-    surfaceContainerHighest = Color(0xFF313534),
+    surfaceDim = Color(0xFF0E1513),
+    surfaceBright = Color(0xFF343A39),
+    surfaceContainerLowest = Color(0xFF090F0E),
+    surfaceContainerLow = Color(0xFF161D1C),
+    surfaceContainer = Color(0xFF1A2120),
+    surfaceContainerHigh = Color(0xFF252B2A),
+    surfaceContainerHighest = Color(0xFF303635),
 )
 
 private val LightColorScheme = lightColorScheme(
@@ -76,22 +78,22 @@ private val LightColorScheme = lightColorScheme(
     onSurfaceVariant = VoxlineOnSurfaceVariantLight,
     outline = VoxlineOutlineLight,
     outlineVariant = VoxlineOutlineVariantLight,
-    error = Color(0xFFBA1A1A),
-    onError = Color.White,
-    errorContainer = Color(0xFFFFDAD6),
-    onErrorContainer = Color(0xFF410002),
-    inverseSurface = Color(0xFF2D3130),
-    inverseOnSurface = Color(0xFFEFF1F0),
+    error = VoxlineErrorLight,
+    onError = VoxlineOnErrorLight,
+    errorContainer = VoxlineErrorContainerLight,
+    onErrorContainer = VoxlineOnErrorContainerLight,
+    inverseSurface = Color(0xFF2B3230),
+    inverseOnSurface = Color(0xFFECF2EF),
     inversePrimary = VoxlinePrimaryDark,
     surfaceTint = VoxlinePrimaryLight,
     scrim = Color.Black,
-    surfaceDim = Color(0xFFD7DBDA),
+    surfaceDim = Color(0xFFD5DBD9),
     surfaceBright = VoxlineBackgroundLight,
-    surfaceContainerLowest = Color.White,
-    surfaceContainerLow = Color(0xFFF1F5F4),
-    surfaceContainer = Color(0xFFEBEFEE),
-    surfaceContainerHigh = Color(0xFFE5E9E8),
-    surfaceContainerHighest = Color(0xFFDFE3E2),
+    surfaceContainerLowest = Color(0xFFFFFFFF),
+    surfaceContainerLow = Color(0xFFEFF5F2),
+    surfaceContainer = Color(0xFFE9EFED),
+    surfaceContainerHigh = Color(0xFFE3EAE7),
+    surfaceContainerHighest = Color(0xFFDDE4E1),
 )
 
 private val VoxlineShapes = Shapes(
@@ -108,17 +110,26 @@ private val VoxlineShapes = Shapes(
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun VoxlineTheme(
+    themeMode: ThemeMode = ThemeMode.SYSTEM,
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
     content: @Composable () -> Unit,
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
+    val context = LocalContext.current
 
-        darkTheme -> DarkColorScheme
+    val (isDark, useDynamic) = when (themeMode) {
+        ThemeMode.SYSTEM -> {
+            val isAtLeastS = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+            Pair(darkTheme, isAtLeastS)
+        }
+        ThemeMode.LIGHT -> Pair(false, false)
+        ThemeMode.DARK -> Pair(true, false)
+    }
+
+    val colorScheme = when {
+        useDynamic && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
+            if (isDark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+        }
+        isDark -> DarkColorScheme
         else -> LightColorScheme
     }
 
