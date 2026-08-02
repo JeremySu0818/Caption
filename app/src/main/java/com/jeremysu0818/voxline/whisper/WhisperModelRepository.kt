@@ -15,6 +15,7 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -59,26 +60,36 @@ data class ModelDownloadState(
 
 class WhisperModelRepository(context: Context) {
     private val modelDir = File(context.filesDir, "whisper_models")
-    private val downloadMutex = Mutex()
-    private val _downloadState = MutableStateFlow(
-        ModelDownloadState(
-            model = WhisperModelOption.default,
-            isDownloaded = modelFile(WhisperModelOption.default).exists(),
-        )
+    private val modelMutexes = WhisperModelOption.entries.associateWith { Mutex() }
+    private val _downloadStates = MutableStateFlow(
+        WhisperModelOption.entries.associateWith { option ->
+            ModelDownloadState(
+                model = option,
+                isDownloaded = modelFile(option).exists(),
+            )
+        }
     )
 
-    val downloadState: StateFlow<ModelDownloadState> = _downloadState.asStateFlow()
+    val downloadStates: StateFlow<Map<WhisperModelOption, ModelDownloadState>> =
+        _downloadStates.asStateFlow()
 
     fun modelFile(option: WhisperModelOption): File = File(modelDir, option.fileName)
 
     fun refresh(option: WhisperModelOption) {
-        _downloadState.value = ModelDownloadState(
-            model = option,
-            isDownloaded = modelFile(option).exists(),
-        )
+        _downloadStates.update { states ->
+            val currentState = states.getValue(option)
+            if (currentState.isDownloading) {
+                states
+            } else {
+                states + (option to ModelDownloadState(
+                    model = option,
+                    isDownloaded = modelFile(option).exists(),
+                ))
+            }
+        }
     }
 
-    suspend fun deleteModel(option: WhisperModelOption) = downloadMutex.withLock {
+    suspend fun deleteModel(option: WhisperModelOption) = modelMutexes.getValue(option).withLock {
         withContext(Dispatchers.IO) {
             val destination = modelFile(option)
             val tempFile = File(modelDir, "${option.fileName}.download")
@@ -90,38 +101,38 @@ class WhisperModelRepository(context: Context) {
                 destination.delete()
             }
 
-            _downloadState.value = ModelDownloadState(
+            updateState(ModelDownloadState(
                 model = option,
                 isDownloaded = false,
-            )
+            ))
         }
     }
 
-    suspend fun ensureModel(option: WhisperModelOption): File = downloadMutex.withLock {
+    suspend fun ensureModel(option: WhisperModelOption): File = modelMutexes.getValue(option).withLock {
         withContext(Dispatchers.IO) {
             modelDir.mkdirs()
             val destination = modelFile(option)
             if (destination.exists()) {
-                _downloadState.value = ModelDownloadState(
+                updateState(ModelDownloadState(
                     model = option,
                     isDownloaded = true,
                     progress = 1f,
                     downloadedBytes = destination.length(),
                     totalBytes = destination.length(),
                     downloadSpeedBytesPerSecond = 0L,
-                )
+                ))
                 return@withContext destination
             }
 
             val tempFile = File(modelDir, "${option.fileName}.download")
             if (tempFile.exists()) tempFile.delete()
 
-            _downloadState.value = ModelDownloadState(
+            updateState(ModelDownloadState(
                 model = option,
                 isDownloaded = false,
                 isDownloading = true,
                 downloadSpeedBytesPerSecond = 0L,
-            )
+            ))
 
             try {
                 downloadToFile(option, tempFile)
@@ -136,7 +147,7 @@ class WhisperModelRepository(context: Context) {
                     tempFile.copyTo(destination, overwrite = true)
                     tempFile.delete()
                 }
-                _downloadState.value = ModelDownloadState(
+                updateState(ModelDownloadState(
                     model = option,
                     isDownloaded = true,
                     isDownloading = false,
@@ -144,16 +155,16 @@ class WhisperModelRepository(context: Context) {
                     downloadedBytes = destination.length(),
                     totalBytes = destination.length(),
                     downloadSpeedBytesPerSecond = 0L,
-                )
+                ))
                 destination
             } catch (error: Throwable) {
                 tempFile.delete()
-                _downloadState.value = ModelDownloadState(
+                updateState(ModelDownloadState(
                     model = option,
                     isDownloaded = false,
                     isDownloading = false,
                     errorMessage = if (error is CancellationException) null else (error.message ?: com.jeremysu0818.voxline.data.I18n.getString("error_download_failed")),
-                )
+                ))
                 throw error
             }
         }
@@ -214,7 +225,7 @@ class WhisperModelRepository(context: Context) {
                             lastSpeedSampleBytes = downloadedBytes
                             lastSpeedSampleAtMs = nowMs
                         }
-                        _downloadState.value = ModelDownloadState(
+                        updateState(ModelDownloadState(
                             model = option,
                             isDownloaded = false,
                             isDownloading = true,
@@ -222,7 +233,7 @@ class WhisperModelRepository(context: Context) {
                             downloadedBytes = downloadedBytes,
                             totalBytes = totalBytes,
                             downloadSpeedBytesPerSecond = speedBytesPerSecond,
-                        )
+                        ))
                     }
                 }
             }
@@ -237,6 +248,10 @@ class WhisperModelRepository(context: Context) {
             cancelHandler?.dispose()
             connection.disconnect()
         }
+    }
+
+    private fun updateState(state: ModelDownloadState) {
+        _downloadStates.update { states -> states + (state.model to state) }
     }
 
     private fun sha1(file: File): String {

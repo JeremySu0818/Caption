@@ -22,7 +22,6 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.jeremysu0818.voxline.VoxlineGraph
 import com.jeremysu0818.voxline.MainActivity
-import com.jeremysu0818.voxline.whisper.ModelDownloadState
 import com.jeremysu0818.voxline.R
 import com.jeremysu0818.voxline.audio.InMemoryWavWriter
 import com.jeremysu0818.voxline.audio.SystemAudioCapture
@@ -226,8 +225,9 @@ class VoxlineCaptureService : Service() {
                     throw IllegalStateException(I18n.getString("error_model_download_requires_network"))
                 }
                 val downloadStatusJob = serviceScope.launch {
-                    VoxlineGraph.modelRepository.downloadState.collectLatest { state ->
-                        if (state.model == model && state.isDownloading) {
+                    VoxlineGraph.modelRepository.downloadStates.collectLatest { states ->
+                        val state = states.getValue(model)
+                        if (state.isDownloading) {
                             val status = state.buildStatusText()
                             VoxlineRuntimeStore.updateStatus(status)
                             updateNotification(status)

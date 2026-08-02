@@ -116,6 +116,7 @@ import com.jeremysu0818.voxline.data.t
 import com.jeremysu0818.voxline.service.VoxlineCaptureService
 import com.jeremysu0818.voxline.ui.theme.VoxlineTheme
 import com.jeremysu0818.voxline.whisper.ModelDownloadState
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
@@ -175,7 +176,7 @@ private fun VoxlineApp(
     val context = LocalContext.current
     val settings by VoxlineGraph.preferences.settings.collectAsState()
     val runtimeState by VoxlineGraph.runtimeStore.state.collectAsState()
-    val downloadState by VoxlineGraph.modelRepository.downloadState.collectAsState()
+    val downloadStates by VoxlineGraph.modelRepository.downloadStates.collectAsState()
     val scope = rememberCoroutineScope()
     var selectedDestinationIndex by rememberSaveable { mutableIntStateOf(0) }
 
@@ -186,7 +187,7 @@ private fun VoxlineApp(
     var notificationPrompted by remember { mutableStateOf(false) }
     var accessibilityPrompted by remember { mutableStateOf(false) }
     var isMlKitAdvancedAvailable by remember { mutableStateOf<Boolean?>(null) }
-    var downloadJob by remember { mutableStateOf<Job?>(null) }
+    val downloadJobs = remember { mutableMapOf<WhisperModelOption, Job>() }
 
     val mediaProjectionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult(),
@@ -471,24 +472,28 @@ private fun VoxlineApp(
                                         ) {
                                             WhisperModelSection(
                                                 settings = settings,
-                                                downloadState = downloadState,
+                                                downloadStates = downloadStates,
                                                 onModelSelected = VoxlineGraph.preferences::updateModel,
-                                                onDownloadModel = {
-                                                    downloadJob = scope.launch {
+                                                onDownloadModel = { model ->
+                                                    if (downloadJobs[model]?.isActive == true) {
+                                                        return@WhisperModelSection
+                                                    }
+                                                    val job = scope.launch(start = CoroutineStart.LAZY) {
                                                         try {
-                                                            VoxlineGraph.modelRepository.ensureModel(settings.model)
+                                                            VoxlineGraph.modelRepository.ensureModel(model)
                                                         } finally {
-                                                            downloadJob = null
+                                                            downloadJobs.remove(model)
                                                         }
                                                     }
+                                                    downloadJobs[model] = job
+                                                    job.start()
                                                 },
-                                                onCancelDownload = {
-                                                    downloadJob?.cancel()
-                                                    downloadJob = null
+                                                onCancelDownload = { model ->
+                                                    downloadJobs.remove(model)?.cancel()
                                                 },
-                                                onDeleteModel = {
+                                                onDeleteModel = { model ->
                                                     scope.launch {
-                                                        VoxlineGraph.modelRepository.deleteModel(settings.model)
+                                                        VoxlineGraph.modelRepository.deleteModel(model)
                                                     }
                                                 },
                                             )
@@ -1207,11 +1212,11 @@ private fun SpeechEngineSection(
 @Composable
 private fun WhisperModelSection(
     settings: VoxlineSettings,
-    downloadState: ModelDownloadState,
+    downloadStates: Map<WhisperModelOption, ModelDownloadState>,
     onModelSelected: (WhisperModelOption) -> Unit,
-    onDownloadModel: () -> Unit,
-    onCancelDownload: () -> Unit,
-    onDeleteModel: () -> Unit,
+    onDownloadModel: (WhisperModelOption) -> Unit,
+    onCancelDownload: (WhisperModelOption) -> Unit,
+    onDeleteModel: (WhisperModelOption) -> Unit,
 ) {
     var showDeleteConfirmation by remember { mutableStateOf(false) }
     var showCancelConfirmation by remember { mutableStateOf(false) }
@@ -1226,7 +1231,7 @@ private fun WhisperModelSection(
                     shapes = ButtonDefaults.shapes(),
                     onClick = {
                         showCancelConfirmation = false
-                        onCancelDownload()
+                        onCancelDownload(settings.model)
                     },
                     colors = ButtonDefaults.textButtonColors(
                         contentColor = MaterialTheme.colorScheme.error,
@@ -1256,7 +1261,7 @@ private fun WhisperModelSection(
                     shapes = ButtonDefaults.shapes(),
                     onClick = {
                         showDeleteConfirmation = false
-                        onDeleteModel()
+                        onDeleteModel(settings.model)
                     },
                     colors = ButtonDefaults.textButtonColors(
                         contentColor = MaterialTheme.colorScheme.error,
@@ -1276,9 +1281,7 @@ private fun WhisperModelSection(
         )
     }
 
-    val selectedDownloadState = if (downloadState.model == settings.model) {
-        downloadState
-    } else {
+    val selectedDownloadState = downloadStates[settings.model] ?: run {
         ModelDownloadState(model = settings.model)
     }
     val animatedDownloadProgress by animateFloatAsState(
@@ -1402,7 +1405,7 @@ private fun WhisperModelSection(
                     FilledTonalButton(
                         shapes = ButtonDefaults.shapes(),
                         modifier = Modifier.fillMaxWidth(),
-                        onClick = onDownloadModel,
+                        onClick = { onDownloadModel(settings.model) },
                         enabled = !selectedDownloadState.isDownloading && !selectedDownloadState.isDownloaded,
                     ) {
                         Icon(painter = painterResource(R.drawable.sym_download), contentDescription = null)
